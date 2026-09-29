@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Train split encoders from scratch for Paper2.
+Train split encoders from scratch.
 
 - Encoder_m + Decoder_m on male scores
 - Encoder_f + Decoder_f on female scores
@@ -173,7 +173,7 @@ def train_one(X, y_norm, train_idx, val_idx, test_idx, epochs, batch_size, lr, s
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train split encoders for Paper2")
+    parser = argparse.ArgumentParser(description="Train split encoders")
     parser.add_argument("--epochs", type=int, default=250)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-3)

@@ -1008,10 +1008,10 @@ def paper_fig2() -> tuple[Path, Path]:
     Fig.2 A–D: decoder-locus with distributions + null references.
     Data: criteria_references, fig2 boot/null/npz, lambda common-ref export.
     """
-    refs_path = CVAE / "paper2_layer1_criteria_references.json"
+    refs_path = CVAE / "layer1_criteria_references.json"
     if not refs_path.exists():
         raise FileNotFoundError(
-            f"Missing {refs_path.name}. Run analysis_paper2_layer1_criteria_references.py"
+            f"Missing {refs_path.name}. Run analysis_layer1_criteria_references.py"
         )
     refs_full = json.loads(refs_path.read_text(encoding="utf-8"))
     rows = refs_full["rows"]
@@ -1022,9 +1022,9 @@ def paper_fig2() -> tuple[Path, Path]:
     b_f = refs_full["summary"]["criterion_b"]["female"]
     sesoi = float(refs_full["sesoi_delta_r2"])
 
-    boot_path = CVAE / "paper2_layer1_fig2_criterion_a_boot.csv"
-    null_path = CVAE / "paper2_layer1_fig2_criterion_a_label_shuffle_null.json"
-    cka_path = CVAE / "paper2_layer1_fig2_criterion_c_cka_null_arrays.npz"
+    boot_path = CVAE / "layer1_fig2_criterion_a_boot.csv"
+    null_path = CVAE / "layer1_fig2_criterion_a_label_shuffle_null.json"
+    cka_path = CVAE / "layer1_fig2_criterion_c_cka_null_arrays.npz"
     boot_df = pd.read_csv(boot_path) if boot_path.exists() else None
     label_null = json.loads(null_path.read_text()) if null_path.exists() else None
     cka_npz = np.load(cka_path) if cka_path.exists() else None
@@ -1078,7 +1078,7 @@ def paper_fig2() -> tuple[Path, Path]:
     # ── B: per-image MSE scatter (held-out test): swap vs recovery vs native ──
     axB = fig.add_subplot(gs_top[0, 1])
     panel_label(axB, "B")
-    b_csv = CVAE / "paper2_layer1_fig2_criterion_b_per_image_test.csv"
+    b_csv = CVAE / "layer1_fig2_criterion_b_per_image_test.csv"
     if b_csv.exists():
         bdf = pd.read_csv(b_csv)
         mse_n = bdf["mse_native"].to_numpy(float)
@@ -1127,7 +1127,7 @@ def paper_fig2() -> tuple[Path, Path]:
     # ── C: observed CKA vs label-shuffle null (same estimand as Panel A) ──
     axC = fig.add_subplot(gs_top[0, 2])
     panel_label(axC, "C")
-    ac_null_path = CVAE / "paper2_layer1_fig2_label_shuffle_ac_null.json"
+    ac_null_path = CVAE / "layer1_fig2_label_shuffle_ac_null.json"
     if not ac_null_path.exists() and null_path is not None and Path(null_path).exists():
         # fall back: A null JSON may already include CKA after joint generation
         ac_null_path = Path(null_path)
@@ -1794,7 +1794,7 @@ def _load_cluster_module():
     """Sign-flip cluster-permutation helpers shared with the twist analysis."""
     import importlib.util
 
-    path = ROOT / "code" / "paper2_viz" / "figures" / "analyze_cross_within_bias_clusters.py"
+    path = ROOT / "code" / "viz" / "figures" / "analyze_cross_within_bias_clusters.py"
     spec = importlib.util.spec_from_file_location("_paperfig_cluster", path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {path}")
@@ -1820,7 +1820,7 @@ def _load_excess_twist_maps(
     if not csv.exists():
         raise FileNotFoundError(
             f"Missing {csv.name}. Run: "
-            "python3 code/paper2_viz/figures/analyze_relational_cross_within_twist.py"
+            "python3 code/viz/figures/analyze_relational_cross_within_twist.py"
         )
     df = pd.read_csv(csv)
     excess = (df["geo_umap_disp"] - df["model_twist_pm_pf"]).to_numpy(float)
@@ -1965,7 +1965,7 @@ def _draw_topology_single(
 
 def paper_fig3() -> tuple[Path, Path]:
     """NatComm Fig.3 A–H — linear bridges, quantity, quality, direction, composition."""
-    ot = json.loads((CVAE / "paper2_ot_five_point_fixedsplit.json").read_text())
+    ot = json.loads((CVAE / "ot_five_point_fixedsplit.json").read_text())
     comp = json.loads((PBA / "composition_consistency.json").read_text())
     cents = json.loads((PBA / "va_centroids_vs_fixed_points.json").read_text())
     m2f = pd.read_csv(ANC / "z3_generalization_curve_MtoF.csv")
@@ -1997,7 +1997,7 @@ def paper_fig3() -> tuple[Path, Path]:
     ax_a = fig.add_subplot(gs[0, 0])
     panel_label(ax_a, "A")
     if scores_m is None:
-        raise ValueError("scores_male_target missing in paper2_ot_five_point_fixedsplit.json")
+        raise ValueError("scores_male_target missing in ot_five_point_fixedsplit.json")
     _draw_fig3_combined_panel_a(ax_a, scores_f, scores_m, methods, labels, mcolors)
 
     # B: canonical M→F gender bridge
@@ -3795,7 +3795,7 @@ def _draw_z5cat_heatmap_panel(
 # ── Supplement: legacy / technical ────────────────────────────────────
 def paper_supp_cross_within() -> tuple[Path, Path]:
     """Supp. Fig. 1: cross−within δ t-maps only (M→F / F→M); no adjust panels."""
-    from paper2_viz.figures.analyze_cross_within_bias_clusters import (
+    from viz.figures.analyze_cross_within_bias_clusters import (
         VA_MAX,
         VA_MIN,
         overlay_cluster_regions,
@@ -3809,7 +3809,7 @@ def paper_supp_cross_within() -> tuple[Path, Path]:
     if not npz_path.exists():
         raise FileNotFoundError(
             f"Missing {npz_path}. Run: "
-            "python3 code/paper2_viz/figures/analyze_cross_within_bias_clusters.py "
+            "python3 code/viz/figures/analyze_cross_within_bias_clusters.py "
             "--model fusion --subsets all_loto --save-maps-npz"
         )
     with np.load(npz_path) as z:
@@ -3923,11 +3923,11 @@ def write_readme(paths: list[tuple[str, Path, Path]]) -> None:
         "",
         "- Z3: `results/anchor_structure/z3_generalization_curve_*.csv`, `z3_generalization.json`",
         "- Z4/Z5 minimal coverage: `results/anchor_structure/z5_minimal_anchor_profile.json`",
-        "- Fig2: `paper2_layer1_fig2_*.csv/json/npz`, `lambda_gender_diff_common_ref_fig2.npz`",
-        "- OT/linear: `cvae_cross_gender/paper2_ot_five_point_fixedsplit.json`",
+        "- Fig2: `layer1_fig2_*.csv/json/npz`, `lambda_gender_diff_common_ref_fig2.npz`",
+        "- OT/linear: `cvae_cross_gender/ot_five_point_fixedsplit.json`",
         "- Culture transfer: `population_bridge_analysis/{reliability_ceiling,subject_bootstrap_ci,loso_stability}.json`",
         "- Residuals: `population_bridge_analysis/residual_*.{json,csv}`",
-        "- Equivalence: `equivalence_nontriviality_themecv.json` + `paper2_emotion_equivalent_pairs_themecv.csv`",
+        "- Equivalence: `equivalence_nontriviality_themecv.json` + `emotion_equivalent_pairs_themecv.csv`",
         "",
         "## Notes",
         "",

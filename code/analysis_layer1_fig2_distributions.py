@@ -33,7 +33,7 @@ from dataset import add_theme_base, load_oasis_meta  # noqa: E402
 CVAE = CVAE_CROSS_GENDER_DIR
 LAMBDA_CLUSTER_DIR = RESULTS_GENDER / "lambda_gender_diff_cluster_analysis"
 LAMBDA_NPY = RESULTS_GENDER / "lambda_gender_diff_loto_clip.npy"
-FIG_DIR = ROOT / "code" / "paper2_viz" / "figures"
+FIG_DIR = ROOT / "code" / "viz" / "figures"
 
 FIG2_TRAIN_SEEDS = tuple(range(42, 52))
 FIG2_SPLIT_SEED = 42
@@ -50,12 +50,12 @@ INPUT_DIM, HIDDEN, LATENT_DIM = 512, 128, 64
 DROPOUT = 0.1
 TRAIN_RATIO, VAL_RATIO = 0.6, 0.2
 
-OUT_BOOT = CVAE / "paper2_layer1_fig2_criterion_a_boot.csv"
-OUT_LABEL_NULL = CVAE / "paper2_layer1_fig2_criterion_a_label_shuffle_null.json"
-OUT_LABEL_AC_NULL = CVAE / "paper2_layer1_fig2_label_shuffle_ac_null.json"
-OUT_CKA_NPZ = CVAE / "paper2_layer1_fig2_criterion_c_cka_null_arrays.npz"
-OUT_CKA_LABEL_NULL = CVAE / "paper2_layer1_fig2_criterion_c_label_shuffle_null.npz"
-OUT_CRIT_B_TEST = CVAE / "paper2_layer1_fig2_criterion_b_per_image_test.csv"
+OUT_BOOT = CVAE / "layer1_fig2_criterion_a_boot.csv"
+OUT_LABEL_NULL = CVAE / "layer1_fig2_criterion_a_label_shuffle_null.json"
+OUT_LABEL_AC_NULL = CVAE / "layer1_fig2_label_shuffle_ac_null.json"
+OUT_CKA_NPZ = CVAE / "layer1_fig2_criterion_c_cka_null_arrays.npz"
+OUT_CKA_LABEL_NULL = CVAE / "layer1_fig2_criterion_c_label_shuffle_null.npz"
+OUT_CRIT_B_TEST = CVAE / "layer1_fig2_criterion_b_per_image_test.csv"
 OUT_LAMBDA_NPZ = LAMBDA_CLUSTER_DIR / "lambda_gender_diff_common_ref_fig2.npz"
 OUT_LAMBDA_JSON = LAMBDA_CLUSTER_DIR / "lambda_gender_diff_common_ref_fig2.json"
 

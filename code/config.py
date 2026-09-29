@@ -1,28 +1,30 @@
 """
-Settings for the gender-bridging analyses: outputs under EmotionPro2; data from EmotionPro1.
+Project settings for Bridging-AffectMap analyses and figures.
+
+By default all paths are relative to this repository root. Point DATA_DIR /
+RESULTS_DIR at your local OASIS tables and CLIP feature arrays if they live
+elsewhere.
 """
 from pathlib import Path
 
-# Project root = EmotionPro2 (outputs)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-# Data and prior results live under EmotionPro1 (sibling of EmotionPro2 under project/)
-EMOTIONPRO1 = PROJECT_ROOT.parent / "EmotionPro1"
-DATA_DIR = EMOTIONPRO1 / "data"
-RESULTS_DIR = EMOTIONPRO1 / "results"
-RESULTS_2DPRED = EMOTIONPRO1 / "results_2dpred"
 CODE_DIR = PROJECT_ROOT / "code"
 
-# Analysis outputs under EmotionPro2
+# Inputs (OASIS scores, images, frozen CLIP features, prior step outputs)
+DATA_DIR = PROJECT_ROOT / "data"
+RESULTS_DIR = PROJECT_ROOT / "results"
+RESULTS_2DPRED = PROJECT_ROOT / "results_2dpred"
+
+# Analysis / figure outputs for this project
 RESULTS_GENDER = PROJECT_ROOT / "results"
 FIG_INTEGRATED = PROJECT_ROOT / "fig_doc"
-# Cross-gender cVAE (shared encoder + male/female decoders)
 CVAE_CROSS_GENDER_DIR = RESULTS_GENDER / "cvae_cross_gender"
 
-# Data
+# Data files
 OASIS_SCORES_CSV = DATA_DIR / "oasis_scores.csv"
 IMAGES_DIR = DATA_DIR / "images"
 
-# Step-wise result dirs (read from EmotionPro1)
+# Step-wise result dirs (CLIP features, fusion models, etc.)
 RESULTS_STEP1 = RESULTS_DIR / "step1_individual_models"
 RESULTS_STEP2 = RESULTS_DIR / "step2_image_characteristics"
 RESULTS_STEP3 = RESULTS_DIR / "step3_fusion_model"

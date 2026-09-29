@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Paper2: search for emotion-equivalent image pairs.
+Search for emotion-equivalent image pairs.
 
 Female-target definition:
   For each test image i with female truth y_f(i), find j* whose male-decoder
   prediction Dec_m(z_j) is closest among candidates.
 
 Outputs:
-- results/cvae_cross_gender/paper2_emotion_equivalent_pairs_fixedsplit.csv
-- results/cvae_cross_gender/paper2_emotion_equivalent_pairs_fixedsplit_topN.csv
+- results/cvae_cross_gender/emotion_equivalent_pairs_fixedsplit.csv
+- results/cvae_cross_gender/emotion_equivalent_pairs_fixedsplit_topN.csv
 """
 import sys
 from pathlib import Path
@@ -349,10 +349,10 @@ def main():
             n_perm=args.n_perm,
             seed=args.split_seed,
         )
-        out_csv = out_dir / "paper2_emotion_equivalent_pairs_themecv.csv"
-        out_top = out_dir / "paper2_emotion_equivalent_pairs_themecv_topN.csv"
-        out_meta = out_dir / "paper2_emotion_equivalent_pairs_themecv_meta.json"
-        knn_csv = out_dir / "paper2_emotion_equivalent_pairs_themecv_knn.csv"
+        out_csv = out_dir / "emotion_equivalent_pairs_themecv.csv"
+        out_top = out_dir / "emotion_equivalent_pairs_themecv_topN.csv"
+        out_meta = out_dir / "emotion_equivalent_pairs_themecv_meta.json"
+        knn_csv = out_dir / "emotion_equivalent_pairs_themecv_knn.csv"
         out_df.to_csv(out_csv, index=False)
         out_df.head(args.top_n).to_csv(out_top, index=False)
         knn_all.to_csv(knn_csv, index=False)
@@ -401,9 +401,9 @@ def main():
         y_f=y_f, p_m_all=p_m_all, p_f_all=p_f_all,
     )
     out_df = pd.DataFrame(rows).sort_values("distance_l2", ascending=True).reset_index(drop=True)
-    out_csv = out_dir / "paper2_emotion_equivalent_pairs_fixedsplit.csv"
-    out_top = out_dir / "paper2_emotion_equivalent_pairs_fixedsplit_topN.csv"
-    out_meta = out_dir / "paper2_emotion_equivalent_pairs_fixedsplit_meta.json"
+    out_csv = out_dir / "emotion_equivalent_pairs_fixedsplit.csv"
+    out_top = out_dir / "emotion_equivalent_pairs_fixedsplit_topN.csv"
+    out_meta = out_dir / "emotion_equivalent_pairs_fixedsplit_meta.json"
     out_df.to_csv(out_csv, index=False)
     out_df.head(args.top_n).to_csv(out_top, index=False)
 
@@ -429,7 +429,7 @@ def main():
     )
 
     knn_all = pd.concat([knn_ftom, knn_mtof], ignore_index=True)
-    knn_csv = out_dir / "paper2_emotion_equivalent_pairs_fixedsplit_knn.csv"
+    knn_csv = out_dir / "emotion_equivalent_pairs_fixedsplit_knn.csv"
     knn_all.to_csv(knn_csv, index=False)
 
     perm = same_category_permutation_p(

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Paper2 §4.1 follow-up:
+Follow-up to the swap analysis:
 Swap recovery with a linear map T (separating co-adaptation from a true encoder gap).
 
 Protocol (fixed split):
@@ -203,7 +203,7 @@ def main():
         },
     }
 
-    out_path = CVAE_CROSS_GENDER_DIR / f"paper2_swap_linear_map_recovery_{args.split_tag}.json"
+    out_path = CVAE_CROSS_GENDER_DIR / f"swap_linear_map_recovery_{args.split_tag}.json"
     out_path.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(json.dumps(out, indent=2))
     print(f"Saved {out_path}")

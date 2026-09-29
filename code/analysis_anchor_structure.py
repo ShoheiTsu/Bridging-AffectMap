@@ -256,7 +256,7 @@ def predict_piecewise(X: np.ndarray, labels: np.ndarray, maps: list[AffineMap]) 
 
 
 def exact_ot_barycentric_map(Xs: np.ndarray, Yt: np.ndarray, Xq: np.ndarray) -> np.ndarray:
-    """VA-space exact EMD barycentric map (same form as paper2 OT check)."""
+    """VA-space exact EMD barycentric map (same form as the OT five-point check)."""
     a = np.full(len(Xs), 1.0 / len(Xs))
     b = np.full(len(Yt), 1.0 / len(Yt))
     M = ot.dist(Xs, Yt, metric="euclidean") ** 2
@@ -307,7 +307,7 @@ def check_ot_consistency(
 
     Important: exact EMD barycentric OT does **not** minimize held-out L2 residual.
     Piecewise affine can therefore beat OT on residual_L2 / R² without being a bug
-    (consistent with Paper2 OT ≤ linear on prediction metrics). Hard-failing when
+    (consistent with OT ≤ linear on prediction metrics). Hard-failing when
     piecewise < OT residual was a misspecified nail-3 rule for OOS prediction.
 
     Pass conditions (revised):
@@ -471,7 +471,7 @@ def run_one_direction(
     methods["ot"] = {
         "n_params": None,
         "status": "ok",
-        "note": "VA-space exact EMD barycentric; not identical to Paper2 decoder-OT",
+        "note": "VA-space exact EMD barycentric; not identical to the decoder-space OT check",
         **{f"{kk}_test": vv for kk, vv in metrics_ot.items()},
         "residual_l2_test": res_ot,
         "residual_l2_fit": res_ot_fit,
@@ -631,7 +631,7 @@ def write_summary(
         "- Fit = train∪val themes; Eval = held-out themes only.",
         f"- Win rule (pre-registered): held-out ΔR² > **{DELTA_R2_WIN}** AND paired permutation p < **{ALPHA_PERM}**, AND OT consistency pass.",
         "- Clustering: k-means on **source** VA; test assigned by nearest center (no refit).",
-        "- OT: VA-space exact EMD barycentric (not Paper2 decoder-OT).",
+        "- OT: VA-space exact EMD barycentric (not the decoder-space OT check).",
         "- OT consistency (revised): held-out OT must not substantially beat k=1; "
         "piecewise residual < OT is informational (different estimand), not a hard fail.",
         "- **Outcome B policy (locked):** keep linear-sufficiency pillar; M→F k*=2 is "

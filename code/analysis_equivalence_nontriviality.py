@@ -42,10 +42,10 @@ from dataset import add_theme_base, load_oasis_meta  # noqa: E402
 TARGET_M = ["valence_male", "arousal_male"]
 TARGET_F = ["valence_female", "arousal_female"]
 
-EQ_CSV_FIXED = CVAE_CROSS_GENDER_DIR / "paper2_emotion_equivalent_pairs_fixedsplit.csv"
-EQ_META_FIXED = CVAE_CROSS_GENDER_DIR / "paper2_emotion_equivalent_pairs_fixedsplit_meta.json"
-EQ_CSV_CV = CVAE_CROSS_GENDER_DIR / "paper2_emotion_equivalent_pairs_themecv.csv"
-EQ_META_CV = CVAE_CROSS_GENDER_DIR / "paper2_emotion_equivalent_pairs_themecv_meta.json"
+EQ_CSV_FIXED = CVAE_CROSS_GENDER_DIR / "emotion_equivalent_pairs_fixedsplit.csv"
+EQ_META_FIXED = CVAE_CROSS_GENDER_DIR / "emotion_equivalent_pairs_fixedsplit_meta.json"
+EQ_CSV_CV = CVAE_CROSS_GENDER_DIR / "emotion_equivalent_pairs_themecv.csv"
+EQ_META_CV = CVAE_CROSS_GENDER_DIR / "emotion_equivalent_pairs_themecv_meta.json"
 # Back-compat alias
 EQ_CSV = EQ_CSV_FIXED
 REL_TWIST_CSV = PROJECT_ROOT / "results" / "relational_cross_within_twist" / "relational_twist_per_image.csv"

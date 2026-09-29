@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Paper2 Layer1 seed sweep driver (Criteria A/B/C).
+Layer-1 seed sweep driver (Criteria A/B/C).
 
 For each train_seed:
   1) train split encoders (split_seed fixed)
   2) ΔR²(split − common) + permutation p
   3) swap degradation + linear CKA
 
-Aggregates -> results/cvae_cross_gender/paper2_layer1_fixedsplit_seed_sweep.json
+Aggregates -> results/cvae_cross_gender/layer1_fixedsplit_seed_sweep.json
 
 Example:
-  python3 code/run_paper2_layer1_seed_sweep.py --seeds 47 48 49 50 51
-  python3 code/run_paper2_layer1_seed_sweep.py --seeds 42 43 44 45 46 47 48 49 50 51 --skip-train-existing
+  python3 code/run_layer1_seed_sweep.py --seeds 47 48 49 50 51
+  python3 code/run_layer1_seed_sweep.py --seeds 42 43 44 45 46 47 48 49 50 51 --skip-train-existing
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 CODE = ROOT / "code"
 CVAE = ROOT / "results" / "cvae_cross_gender"
-OUT_SWEEP = CVAE / "paper2_layer1_fixedsplit_seed_sweep.json"
+OUT_SWEEP = CVAE / "layer1_fixedsplit_seed_sweep.json"
 PY = sys.executable
 
 
@@ -39,7 +39,7 @@ def train_one(seed: int, *, epochs: int, split_seed: int) -> Path:
     tag = f"seed{seed}"
     out = CVAE / "split_encoders" / tag
     _run([
-        PY, str(CODE / "train_paper2_split_encoders.py"),
+        PY, str(CODE / "train_split_encoders.py"),
         "--train-seed", str(seed),
         "--split-seed", str(split_seed),
         "--out-tag", tag,
@@ -52,15 +52,15 @@ def delta_r2_one(seed: int, *, split_seed: int, n_perm: int) -> dict:
     tag = f"seed{seed}"
     # analysis writes a shared path; we immediately snapshot per-seed
     _run([
-        PY, str(CODE / "analysis_paper2_delta_r2_common_vs_split.py"),
+        PY, str(CODE / "analysis_delta_r2_common_vs_split.py"),
         "--split-tag", tag,
         "--split-seed", str(split_seed),
         "--n-perm", str(n_perm),
         "--seed", str(split_seed),
     ])
-    src = CVAE / "paper2_delta_r2_common_vs_split.json"
+    src = CVAE / "delta_r2_common_vs_split.json"
     payload = json.loads(src.read_text(encoding="utf-8"))
-    snap = CVAE / f"paper2_delta_r2_{tag}.json"
+    snap = CVAE / f"delta_r2_{tag}.json"
     snap.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return payload
 
@@ -68,11 +68,11 @@ def delta_r2_one(seed: int, *, split_seed: int, n_perm: int) -> dict:
 def swap_cka_one(seed: int, *, split_seed: int) -> dict:
     tag = f"seed{seed}"
     _run([
-        PY, str(CODE / "analysis_paper2_swap_and_cka.py"),
+        PY, str(CODE / "analysis_swap_and_cka.py"),
         "--split-tag", tag,
         "--split-seed", str(split_seed),
     ])
-    return json.loads((CVAE / f"paper2_swap_cka_{tag}.json").read_text(encoding="utf-8"))
+    return json.loads((CVAE / f"swap_cka_{tag}.json").read_text(encoding="utf-8"))
 
 
 def row_from(seed: int, delta: dict, swap: dict) -> dict:
@@ -95,8 +95,8 @@ def load_existing_row(seed: int) -> dict | None:
         for r in prev.get("rows", []):
             if int(r["train_seed"]) == int(seed):
                 return r
-    dpath = CVAE / f"paper2_delta_r2_seed{seed}.json"
-    spath = CVAE / f"paper2_swap_cka_seed{seed}.json"
+    dpath = CVAE / f"delta_r2_seed{seed}.json"
+    spath = CVAE / f"swap_cka_seed{seed}.json"
     if dpath.exists() and spath.exists():
         return row_from(seed, json.loads(dpath.read_text()), json.loads(spath.read_text()))
     return None

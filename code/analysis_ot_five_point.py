@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Paper2 Layer2: five-point mapping comparison (No/Global/Linear/OT/Oracle) on a fixed split.
+Layer-2 mapping analysis: five-point mapping comparison (No/Global/Linear/OT/Oracle) on a fixed split.
 """
 import sys
 from pathlib import Path
@@ -305,7 +305,7 @@ def main():
         "ot_reg_male_target": float(reg_m),
         "ot_reg_selection_male_target": regsel_m,
     }
-    out_path = CVAE_CROSS_GENDER_DIR / "paper2_ot_five_point_fixedsplit.json"
+    out_path = CVAE_CROSS_GENDER_DIR / "ot_five_point_fixedsplit.json"
     out_path.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(json.dumps(out, indent=2))
     print(f"Saved {out_path}")

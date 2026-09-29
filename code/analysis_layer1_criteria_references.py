@@ -14,12 +14,12 @@ Criterion C (CKA high):
   vs row-permutation null CKA(z_m, permute(z_f)).
 
 Outputs:
-  results/cvae_cross_gender/paper2_layer1_criteria_references.json
-  (also merges `references` block into paper2_layer1_fixedsplit_seed_sweep.json)
+  results/cvae_cross_gender/layer1_criteria_references.json
+  (also merges `references` block into layer1_fixedsplit_seed_sweep.json)
 
 Example:
-  python3 code/analysis_paper2_layer1_criteria_references.py
-  python3 code/analysis_paper2_layer1_criteria_references.py --seeds 42 43 44 45 46 47 48 49 50 51
+  python3 code/analysis_layer1_criteria_references.py
+  python3 code/analysis_layer1_criteria_references.py --seeds 42 43 44 45 46 47 48 49 50 51
 """
 from __future__ import annotations
 
@@ -45,8 +45,8 @@ from config import (  # noqa: E402
 from dataset import load_oasis_meta, add_theme_base  # noqa: E402
 
 CVAE = CVAE_CROSS_GENDER_DIR
-SWEEP = CVAE / "paper2_layer1_fixedsplit_seed_sweep.json"
-OUT = CVAE / "paper2_layer1_criteria_references.json"
+SWEEP = CVAE / "layer1_fixedsplit_seed_sweep.json"
+OUT = CVAE / "layer1_criteria_references.json"
 TARGET_M = ["valence_male", "arousal_male"]
 TARGET_F = ["valence_female", "arousal_female"]
 INPUT_DIM, HIDDEN, DROPOUT = 512, 128, 0.1
@@ -197,7 +197,7 @@ def cka_null(z_m, z_f, n_perm=2000, seed=0):
 
 def ensure_recovery(seed: int, *, alpha: float, split_seed: int) -> dict:
     tag = f"seed{seed}"
-    path = CVAE / f"paper2_swap_linear_map_recovery_{tag}.json"
+    path = CVAE / f"swap_linear_map_recovery_{tag}.json"
     need = True
     if path.exists():
         prev = json.loads(path.read_text(encoding="utf-8"))
@@ -207,7 +207,7 @@ def ensure_recovery(seed: int, *, alpha: float, split_seed: int) -> dict:
         subprocess.run(
             [
                 sys.executable,
-                str(ROOT / "code" / "analysis_paper2_swap_linear_map_recovery.py"),
+                str(ROOT / "code" / "analysis_swap_linear_map_recovery.py"),
                 "--split-tag", tag,
                 "--split-seed", str(split_seed),
                 "--alpha", str(alpha),
@@ -233,7 +233,7 @@ def analyze_seed(seed: int, sweep_row: dict, *, alpha: float, split_seed: int, n
     p_a = float(sweep_row["p_split_gt_common"])
 
     # Common R² from per-seed delta snapshot if present
-    dpath = CVAE / f"paper2_delta_r2_{tag}.json"
+    dpath = CVAE / f"delta_r2_{tag}.json"
     common_r2 = None
     split_r2 = None
     if dpath.exists():

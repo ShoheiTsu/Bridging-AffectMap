@@ -31,11 +31,11 @@ from dataset import load_oasis_meta  # noqa: E402
 CVAE = ROOT / "results" / "cvae_cross_gender"
 PBA = ROOT / "results" / "population_bridge_analysis"
 OUT_RES = ROOT / "results" / "equivalence_nontriviality"
-KNN_CSV_FIXED = CVAE / "paper2_emotion_equivalent_pairs_fixedsplit_knn.csv"
-KNN_CSV_CV = CVAE / "paper2_emotion_equivalent_pairs_themecv_knn.csv"
-PAIRS_FIXED = CVAE / "paper2_emotion_equivalent_pairs_fixedsplit.csv"
-PAIRS_CV = CVAE / "paper2_emotion_equivalent_pairs_themecv.csv"
-PAIRS_CV_META = CVAE / "paper2_emotion_equivalent_pairs_themecv_meta.json"
+KNN_CSV_FIXED = CVAE / "emotion_equivalent_pairs_fixedsplit_knn.csv"
+KNN_CSV_CV = CVAE / "emotion_equivalent_pairs_themecv_knn.csv"
+PAIRS_FIXED = CVAE / "emotion_equivalent_pairs_fixedsplit.csv"
+PAIRS_CV = CVAE / "emotion_equivalent_pairs_themecv.csv"
+PAIRS_CV_META = CVAE / "emotion_equivalent_pairs_themecv_meta.json"
 # Prefer theme-CV for all Fig.6 panels (A/B/C).
 KNN_CSV = KNN_CSV_CV if KNN_CSV_CV.exists() else KNN_CSV_FIXED
 PAIRS_PRIMARY = PAIRS_CV if PAIRS_CV.exists() else PAIRS_FIXED
@@ -165,7 +165,7 @@ def load_knn() -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(
             f"Missing knn CSV ({path.name}). Run:\n"
-            "  python3 code/analysis_paper2_emotion_equivalent_pairs.py --mode themecv --knn-k 5"
+            "  python3 code/analysis_emotion_equivalent_pairs.py --mode themecv --knn-k 5"
         )
     return pd.read_csv(path)
 

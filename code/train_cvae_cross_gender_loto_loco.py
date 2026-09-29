@@ -7,7 +7,7 @@ Per fold:
   Phase 2: freeze Encoder; train Decoder_f on (z_train, y_female)
   Test: record male within-R² and female cross-R² per fold; pool folds for overall R².
 
-Requires: PyTorch, EmotionPro1 features_clip.npy and oasis_scores.csv
+Requires: PyTorch, features_clip.npy and oasis_scores.csv
 (gender scores, theme, category).
 """
 import sys

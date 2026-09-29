@@ -26,7 +26,7 @@ from sklearn.preprocessing import StandardScaler
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "code"))
 
-from analysis_paper2_emotion_equivalent_pairs import (  # noqa: E402
+from analysis_emotion_equivalent_pairs import (  # noqa: E402
     TARGET_F,
     TARGET_M,
     build_1nn_rows,

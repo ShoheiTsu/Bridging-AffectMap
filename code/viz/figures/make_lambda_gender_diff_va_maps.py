@@ -28,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_ROOT / "code"))
-FIG_DIR = PROJECT_ROOT / "code" / "paper2_viz" / "figures"
+FIG_DIR = PROJECT_ROOT / "code" / "viz" / "figures"
 
 _spec = importlib.util.spec_from_file_location(
     "analyze_cross_within_bias_clusters",

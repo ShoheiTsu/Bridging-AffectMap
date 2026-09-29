@@ -486,7 +486,7 @@ def draw_panel_e(ax, density: dict, basins: list[dict], profiles: dict, fig: plt
 def main() -> None:
     plt.rcParams.update(PAPER_RC)
 
-    ot = json.loads((CVAE / "paper2_ot_five_point_fixedsplit.json").read_text())
+    ot = json.loads((CVAE / "ot_five_point_fixedsplit.json").read_text())
     scores_f = ot["scores_female_target"]
     scores_m = ot["scores_male_target"]
     comp = json.loads((PBA / "composition_consistency.json").read_text())

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Paper2 falsifiers B/C:
+Falsifiers B/C:
 - B: encoder-swap degradation (single split)
 - C: linear CKA between Encoder_m and Encoder_f
 """
@@ -150,7 +150,7 @@ def main():
             "linear_cka_zm_zf": float(cka)
         }
     }
-    out_path = CVAE_CROSS_GENDER_DIR / f"paper2_swap_cka_{args.split_tag}.json"
+    out_path = CVAE_CROSS_GENDER_DIR / f"swap_cka_{args.split_tag}.json"
     out_path.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(json.dumps(out, indent=2))
     print(f"Saved {out_path}")

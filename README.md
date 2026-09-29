@@ -1,6 +1,7 @@
-# Analysis code and Japanese group-mean data
+# Bridging-AffectMap
 
-Supporting materials for the submitted analyses: frozen CLIP features, group-specific affective readouts, affine bridges across gender and culture, and exemplar translation.
+Analysis code and Japanese group-mean data for the Bridging-AffectMap project:
+frozen CLIP features, group-specific affective readouts, affine bridges across gender and culture, and exemplar translation.
 
 ## Contents
 

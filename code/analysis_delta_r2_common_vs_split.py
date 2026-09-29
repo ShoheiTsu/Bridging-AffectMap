@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Paper2: ΔR² test of shared vs split encoders on the same test split.
+ΔR² test of shared vs split encoders on the same test split.
 
 Current implementation uses a single theme-based train/val/test split and compares
 the shared model `weights.pt` with split encoders under `split_encoders/*.pt` on the
@@ -254,7 +254,7 @@ def main():
         "null_mean": float(null_mean),
         "null_std": float(null_std),
     }
-    out_path = CVAE_CROSS_GENDER_DIR / "paper2_delta_r2_common_vs_split.json"
+    out_path = CVAE_CROSS_GENDER_DIR / "delta_r2_common_vs_split.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
 

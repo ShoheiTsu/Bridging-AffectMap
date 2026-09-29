@@ -33,7 +33,7 @@ OUT = ROOT / "testfig"
 PAPER = ROOT / "Paper_fig"
 EQ = ROOT / "results" / "equivalence_nontriviality"
 PBA = ROOT / "results" / "population_bridge_analysis"
-PAIRS_CV = ROOT / "results" / "cvae_cross_gender" / "paper2_emotion_equivalent_pairs_themecv.csv"
+PAIRS_CV = ROOT / "results" / "cvae_cross_gender" / "emotion_equivalent_pairs_themecv.csv"
 VA_LIM = (1.0, 7.0)
 CAT_ORDER = ["Scene", "Person", "Object", "Animal"]
 
