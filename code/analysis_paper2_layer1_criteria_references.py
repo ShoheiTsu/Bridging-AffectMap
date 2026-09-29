@@ -3,7 +3,7 @@
 Layer1 Criteria A/B/C — reference baselines for "compared to what".
 
 Criterion A (ΔR² ≈ 0):
-  vs preregistered SESOI=0.05 encoder-falsifier (PAPER2_PREREGISTERED_PROTOCOL.md).
+  vs preregistered SESOI=0.05 encoder-falsifier threshold.
   Report: |ΔR²| ≪ SESOI; n seeds meeting (ΔR²>SESOI & p<0.05); relative to common R².
 
 Criterion B (swap large):

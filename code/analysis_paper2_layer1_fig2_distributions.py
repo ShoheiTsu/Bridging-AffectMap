@@ -2,7 +2,6 @@
 """
 Fig.2 Layer1 distribution outputs (bootstrap / label-shuffle null / CKA null / λ cluster).
 
-Spec: doc/FIG2_LAYER1_DISTRIBUTIONS_SPEC.md
 """
 from __future__ import annotations
 

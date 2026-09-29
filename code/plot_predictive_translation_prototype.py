@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-Prototype figure: predictive case translation (Ridge + 1-NN vs Φ).
+Predictive case translation figure (Ridge + 1-NN vs Φ).
 
-Candidate for Fig.6 / Supplement (not Fig.5).
 Panels A–B: violin + scatter (not bars).
-Outputs to testfig/ for visual review.
-See doc/EQUIVALENCE_PREDICTIVE_TRANSLATION_SUPP.md
+Outputs: Paper_fig/ (and optional review copies under testfig/).
 """
 from __future__ import annotations
 
@@ -582,7 +580,7 @@ def export_fig5_panel_e_predictive_table(
     use_cached_csv: bool = True,
     out_dirs: tuple[Path, Path] | None = None,
 ) -> dict[str, Path]:
-    """Export Manuscripts Fig.5E as category × direction summary table."""
+    """Export Fig.5E as category × direction summary table."""
     if out_dirs is None:
         out_dirs = (PAPER, OUT)
     plt.rcParams.update(PAPER_RC)
@@ -1162,7 +1160,7 @@ def export_fig5_panel_e_predictive_category(
     out_dirs: tuple[Path, Path] | None = None,
     as_table: bool = True,
 ) -> dict[str, Path]:
-    """Export Manuscripts Fig.5E (default: summary table; optional: 2×2 bar panels)."""
+    """Export Fig.5E (default: summary table; optional: 2×2 bar panels)."""
     if as_table:
         return export_fig5_panel_e_predictive_table(
             use_cached_csv=use_cached_csv, out_dirs=out_dirs,

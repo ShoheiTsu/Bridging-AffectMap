@@ -2,9 +2,8 @@
 """
 群レベル affine 橋解析スイート（解析①–⑤）。
 
-仕様: doc/POPULATION_BRIDGE_ANALYSIS_SPEC.md
-出力: results/population_bridge_analysis/*.json, fig_doc/Figure_population_bridge_*.png
-      doc/POPULATION_BRIDGE_ANALYSIS_RESULTS.md（文章サマリ）
+出力: results/population_bridge_analysis/*.json および RESULTS.md；
+      図は fig_doc/ または Paper_fig/ へ保存。
 """
 from __future__ import annotations
 
@@ -33,7 +32,7 @@ from dataset import add_theme_base, load_oasis_meta, theme_base  # noqa: E402
 from train_cvae_cross_gender import train_val_test_split_by_theme  # noqa: E402
 
 OUT_DIR = PROJECT_ROOT / "results" / "population_bridge_analysis"
-DOC_RESULTS = PROJECT_ROOT / "doc" / "POPULATION_BRIDGE_ANALYSIS_RESULTS.md"
+DOC_RESULTS = OUT_DIR / "RESULTS.md"
 JAPAN_TRIALS = PROJECT_ROOT / "subject_image_va_scores.csv"
 JAPAN_ALIGN = PROJECT_ROOT / "results" / "cvae_cross_gender" / "subject_scores_oasis_alignment_1to7.csv"
 
@@ -579,8 +578,6 @@ def write_results_markdown(
         "",
         "更新日: 自動生成（`code/analysis_population_bridge_suite.py`）",
         "",
-        "仕様: [`POPULATION_BRIDGE_ANALYSIS_SPEC.md`](POPULATION_BRIDGE_ANALYSIS_SPEC.md)",
-        "",
         "本レポートは解析①–⑤の数値結果を**文章形式**でまとめたものです。JSON 詳細は `results/population_bridge_analysis/` を参照してください。",
         "",
         "---",
@@ -705,7 +702,7 @@ def write_results_markdown(
         "",
         "---",
         "",
-        "## 原稿への織り込み（英文ドラフト用サマリ）",
+        "## Manuscript summary",
         "",
         "1. **Composition:** Linear gender and culture bridges compose consistently: composed M→JP prediction recovers ≥90% of direct-bridge \(R^2\) on held-out themes (ratio ≥0.90; full-sample ratio ≈0.99).",
         "2. **Residual geography:** Gender-bridge residuals enrich Person > Object; culture-bridge residuals are asymmetrically larger on Arousal.",

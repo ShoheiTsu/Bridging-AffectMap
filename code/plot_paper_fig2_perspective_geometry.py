@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Paper Fig. 2 (Manuscripts.md numbering) — perspective-taking geometry.
+Paper Fig. 2 — perspective-taking geometry.
 
 A  five-point mapping (pooled): M→F | F→M side-by-side; point + 95% CI; oracle−affine bracket
    dimensional V/A breakdown → Paper_SuppFig_five_point_by_dimension (order not preserved)

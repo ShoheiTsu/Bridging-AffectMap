@@ -7,7 +7,7 @@ Estimands
   F→M: Δ = y_m − Φ_fm(y_f), field anchored at female VA
   Φ fit on OASIS-900 (same class as residual_per_image_gender).
 
-Outputs under results/.../residual_field_topology/ and testfig/.
+Outputs under results/.../residual_field_topology/ (optional review copies under testfig/).
 """
 from __future__ import annotations
 

@@ -8,7 +8,6 @@ Anchor structure analysis:
   Z5 — minimal-coverage anchor identification & characterization
   Z6 — signed-area orientation of Z5 minimal-coverage polygons
 
-Spec: doc/ANCHOR_STRUCTURE_*_SPEC.md
 Output: results/anchor_structure/
 """
 from __future__ import annotations
@@ -65,7 +64,7 @@ Z1_FINE_HALF_WIDTH = 1.0
 Z1_RIDGE = 1e-8
 Z1_CONSISTENCY_EPS = 1e-3
 Z1_N_BOOT_DEFAULT = 200
-CANON_FP_M_TO_F = (5.15, 4.36)  # population-mean registry reference
+CANON_FP_M_TO_F = (5.15, 4.36)  # population-mean fixed-point reference
 
 # Z3 shared-anchor generalization
 Z3_K_LIST = (1, 2, 3, 5, 8, 13, 21, 34)
@@ -1762,7 +1761,7 @@ def run_z3_all(
         pd.DataFrame(br["curve_rows"]).to_csv(
             out_dir / f"z3_generalization_curve_{suffix}.csv", index=False
         )
-        # also write canonical short name for main (ridge) curve
+        # also write short name for main (ridge) curve
         if affine_mode == "ridge":
             pd.DataFrame(br["curve_rows"]).to_csv(
                 out_dir / f"z3_generalization_curve_{short}.csv", index=False

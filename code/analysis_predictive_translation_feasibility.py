@@ -2,7 +2,7 @@
 """
 Feasibility: predictive case translation without peeking at the target rating.
 
-Female-target estimand (canonical Paper2 direction):
+Female-target estimand (primary M→F direction):
   For held-out image i, predict translation partner j without using y_f(i),
   then estimate y_f(i) ≈ pred_m(j).
 

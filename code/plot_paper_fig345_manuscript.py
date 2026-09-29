@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Manuscript Figs 3–5 (doc/Manuscripts.md numbering).
+Manuscript Figs 3–5.
 
 Fig.3  culture wall: A 2×2 raw/affine scatters; B observed R² vs reliability ceiling + CI
 Fig.4  residuals: A 4-category violin; B–C excess twist (defined title); D Person bottleneck bars

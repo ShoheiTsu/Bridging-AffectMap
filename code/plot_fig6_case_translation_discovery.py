@@ -4,8 +4,7 @@ Fig.6 discovery panels: (A) non-Person equivalence exemplars,
 (B) VA spatial co-localization of Φ residual vs translation efficacy,
 (C) semantic-category flow among equivalent pairs (4×4 transition).
 
-Circular rule: do NOT plot/claim scalar residual×improvement ρ≈0.90.
-See doc/NATCOMM_FIG6_DISCOVERY_SPEC.md
+Do not plot/claim scalar residual×improvement ρ≈0.90.
 """
 from __future__ import annotations
 
@@ -1139,7 +1138,6 @@ def make_fig6_discovery(save_png: Path, save_svg: Path | None = None) -> tuple[l
 
     off_diag = float(mat.sum() - np.trace(mat))
     manifest = {
-        "spec": "doc/NATCOMM_FIG6_DISCOVERY_SPEC.md",
         "circular_rule": "Do not claim scalar residual×improvement ρ; show VA co-localization only.",
         "pairs_mode": pairs_mode,
         "pairs_csv": str(PAIRS_PRIMARY.name),
@@ -4169,7 +4167,7 @@ def export_fig5_case_translation_ad(
     *,
     out_dirs: tuple[Path, Path] | None = None,
 ) -> dict[str, Path]:
-    """Export Manuscripts Fig.5A (exemplars) and Fig.5D (category flow) for Paper."""
+    """Export Fig.5A (exemplars) and Fig.5D (category flow) for Paper."""
     if out_dirs is None:
         out_dirs = (ROOT / "Paper_fig", ROOT / "testfig")
     hub_bundles, spread_sources, flow_m, meta, c_note, _ = _case_translation_panel_context()

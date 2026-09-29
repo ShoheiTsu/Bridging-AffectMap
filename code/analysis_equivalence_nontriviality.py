@@ -15,8 +15,8 @@
 
 出力:
   results/equivalence_nontriviality/equivalence_nontriviality.json
-  fig_doc/Figure_equivalence_nontriviality.png
-  doc/EQUIVALENCE_NONTRIVIALITY_RESULTS.md（文章）
+  results/equivalence_nontriviality/Figure_equivalence_nontriviality.png
+  results/equivalence_nontriviality/RESULTS.md（文章サマリ）
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ EQ_CSV = EQ_CSV_FIXED
 REL_TWIST_CSV = PROJECT_ROOT / "results" / "relational_cross_within_twist" / "relational_twist_per_image.csv"
 
 OUT_DIR = PROJECT_ROOT / "results" / "equivalence_nontriviality"
-DOC_OUT = PROJECT_ROOT / "doc" / "EQUIVALENCE_NONTRIVIALITY_RESULTS.md"
+DOC_OUT = OUT_DIR / "RESULTS.md"
 
 N_PERM = 10000
 SEED = 42
@@ -64,7 +64,7 @@ def resolve_pairs_paths(mode: str) -> tuple[Path, Path, Path, Path]:
             EQ_CSV_CV,
             EQ_META_CV,
             OUT_DIR / "equivalence_nontriviality_themecv.json",
-            PROJECT_ROOT / "doc" / "EQUIVALENCE_NONTRIVIALITY_RESULTS_THEMECV.md",
+            OUT_DIR / "RESULTS_THEMECV.md",
         )
     return (
         EQ_CSV_FIXED,
@@ -294,8 +294,6 @@ def write_markdown(
         "",
         "更新日: 自動生成（`code/analysis_equivalence_nontriviality.py`）",
         "",
-        "数値正規表: [`NUMERICAL_CANON_REGISTRY.md`](NUMERICAL_CANON_REGISTRY.md)",
-        "",
         f"mode: **{mode}**",
         f"対象 CSV: `{pairs_csv}`",
         f"（\(n={n_label}\) ペア、プール/画像 {pool_label}、seed {meta.get('split_seed', SEED)}）",
@@ -384,7 +382,7 @@ def write_markdown(
         "",
         "## 図",
         "",
-        f"`fig_doc/Figure_equivalence_nontriviality{'_themecv' if mode == 'themecv' else ''}.png`",
+        f"`results/equivalence_nontriviality/Figure_equivalence_nontriviality{'_themecv' if mode == 'themecv' else ''}.png`",
         "",
         "## 出力",
         "",
