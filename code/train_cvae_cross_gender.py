@@ -32,14 +32,14 @@ from dataset import load_oasis_meta, add_theme_base
 TARGET_MALE = ["valence_male", "arousal_male"]
 TARGET_FEMALE = ["valence_female", "arousal_female"]
 
-# モデル構造
+# Model architecture
 INPUT_DIM = 512   # CLIP feature dim
 LATENT_DIM = 64
 HIDDEN = 128
 DROPOUT = 0.1
 # training hyperparameters
 BATCH_SIZE = 64
-EPOCHS_PHASE1 = 200   # 互換のため残す: joint 総 epoch = EPOCHS_PHASE1 + EPOCHS_PHASE2
+EPOCHS_PHASE1 = 200   # kept for compatibility: joint epochs = EPOCHS_PHASE1 + EPOCHS_PHASE2
 EPOCHS_PHASE2 = 150
 LR = 1e-3
 TRAIN_RATIO = 0.6
@@ -89,7 +89,7 @@ def main():
 
     CVAE_CROSS_GENDER_DIR.mkdir(parents=True, exist_ok=True)
 
-    # データ
+    # Data
     X_clip = np.load(RESULTS_STEP1 / "features_clip.npy").astype(np.float32)
     df = load_oasis_meta(OASIS_SCORES_CSV)
     cols = TARGET_MALE + TARGET_FEMALE
@@ -120,7 +120,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(RANDOM_SEED)
 
-    # モデル定義
+    # Model definition
     class Encoder(nn.Module):
         def __init__(self):
             super().__init__()
@@ -243,7 +243,7 @@ def main():
         "R2_female_valence": float(r2_female_v),
         "R2_female_arousal": float(r2_female_a),
         "R2_female_mean": float(r2_female_mean),
-        # 下位互換（旧「女性 cross」列名）
+        # Backward-compatible alias for the former female-cross column name
         "R2_female_cross_valence": float(r2_female_v),
         "R2_female_cross_arousal": float(r2_female_a),
         "R2_female_cross_mean": float(r2_female_mean),
@@ -252,7 +252,7 @@ def main():
         json.dump(report, f, indent=2)
     print(f"Report saved to {CVAE_CROSS_GENDER_DIR / 'report.json'}")
 
-    # 重み保存（後で可視化などに利用可能）
+    # Save weights for later visualization / reuse
     torch.save({
         "encoder": encoder.state_dict(),
         "decoder_m": decoder_m.state_dict(),

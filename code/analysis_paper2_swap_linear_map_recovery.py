@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Paper2 4.1 補強:
-Linear map T による swap 回復実験（co-adaptation vs true encoder gap の切り分け）。
+Paper2 §4.1 follow-up:
+Swap recovery with a linear map T (separating co-adaptation from a true encoder gap).
 
-手順（fixed split）:
-1) split encoder から z_m, z_f を取得
-2) train で T_f2m: z_f -> z_m, T_m2f: z_m -> z_f を学習（Ridge）
-3) test で以下を比較
+Protocol (fixed split):
+1) Get z_m, z_f from split encoders
+2) Fit T_f2m: z_f -> z_m and T_m2f: z_m -> z_f on train (Ridge)
+3) Compare on test:
    - native: Dec_m(z_m), Dec_f(z_f)
    - raw swap: Dec_m(z_f), Dec_f(z_m)
    - corrected swap: Dec_m(T_f2m(z_f)), Dec_f(T_m2f(z_m))
-4) 回復率を算出
+4) Compute recovery ratios
 """
 import sys
 from pathlib import Path

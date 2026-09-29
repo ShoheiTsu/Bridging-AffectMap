@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Paper2: 共通Encoder vs 分離Encoder の ΔR² 検定（同一テスト分割）。
+Paper2: ΔR² test of shared vs split encoders on the same test split.
 
-現時点の実装は single split（theme-based train/val/test）で、
-共通モデル `weights.pt` と分離モデル `split_encoders/*.pt` を同じ test に適用して比較する。
+Current implementation uses a single theme-based train/val/test split and compares
+the shared model `weights.pt` with split encoders under `split_encoders/*.pt` on the
+same test images.
 """
 import sys
 from pathlib import Path

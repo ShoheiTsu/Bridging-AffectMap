@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Paper2 Layer2: OT 5点比較（No/Global/Linear/OT/Oracle） on fixed split.
+Paper2 Layer2: five-point mapping comparison (No/Global/Linear/OT/Oracle) on a fixed split.
 """
 import sys
 from pathlib import Path

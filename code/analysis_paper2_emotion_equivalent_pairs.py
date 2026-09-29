@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Paper2: 情動等価画像（emotion-equivalent image pairs）探索。
+Paper2: search for emotion-equivalent image pairs.
 
-定義（女性ターゲット）:
-  各 test 画像 i の女性真値 y_f(i) に対し、
-  男性デコーダ予測 Dec_m(z_j) が最も近い画像 j* を全候補から探索。
+Female-target definition:
+  For each test image i with female truth y_f(i), find j* whose male-decoder
+  prediction Dec_m(z_j) is closest among candidates.
 
-出力:
+Outputs:
 - results/cvae_cross_gender/paper2_emotion_equivalent_pairs_fixedsplit.csv
 - results/cvae_cross_gender/paper2_emotion_equivalent_pairs_fixedsplit_topN.csv
 """

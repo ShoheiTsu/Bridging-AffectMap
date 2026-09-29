@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-クロス性別 cVAE を LOTO / LOCO で評価。
+Evaluate the cross-gender cVAE with LOTO / LOCO.
 
-各 fold で:
-  Phase 1: Encoder + Decoder_m を男性ターゲットで学習（train を theme で 80/20 に分割し val で監視）
-  Phase 2: Encoder 凍結、Decoder_f を (z_train, y_female) で学習
-  Test: 男性 within R²、女性 cross R² を fold ごとに記録し、全 fold を集約して overall R² を算出。
+Per fold:
+  Phase 1: train Encoder + Decoder_m on the male target (80/20 theme split; monitor val)
+  Phase 2: freeze Encoder; train Decoder_f on (z_train, y_female)
+  Test: record male within-R² and female cross-R² per fold; pool folds for overall R².
 
-要: PyTorch, EmotionPro1 の features_clip.npy と oasis_scores.csv（男女別スコア・theme・category）
+Requires: PyTorch, EmotionPro1 features_clip.npy and oasis_scores.csv
+(gender scores, theme, category).
 """
 import sys
 from pathlib import Path
@@ -46,13 +47,13 @@ LR = 1e-3
 SCALE_VA = (VALENCE_AROUSAL_SCALE_MIN, VALENCE_AROUSAL_SCALE_MAX)
 MIN_TEST_LOTO = 2
 MIN_TEST_LOCO = 5
-PATIENCE = 15       # 早期打ち切り（val loss が改善しない epoch 数）
-VAE_BETA = 0.01     # VAE 時の KL 重み（use_vae=True のとき）
+PATIENCE = 15       # early stopping patience (epochs without val-loss improvement)
+VAE_BETA = 0.01     # KL weight when use_vae=True
 
-# 簡略 nested: 内側グリッドと内側用 epoch（短めで高速化）
+# Lightweight nested search: inner grid and shorter inner epochs
 NESTED_LR_GRID = [1e-3, 3e-4]
 NESTED_LATENT_DIM_GRID = [32, 64]
-EPOCHS_PHASE1_INNER = 60   # 内側探索用（本番より短い）
+EPOCHS_PHASE1_INNER = 60   # inner search (shorter than the outer run)
 EPOCHS_PHASE2_INNER = 40
 
 
@@ -243,7 +244,7 @@ def _build_and_train_one_fold(
 
 
 def _split_inner_train_val(train_idx, df, seed):
-    """外側訓練を theme_base で 80/20 に分割し、内側訓練・内側 val のインデックスを返す。"""
+    """Split outer training by theme_base 80/20; return inner-train and inner-val indices."""
     df_train = df.iloc[train_idx].reset_index(drop=True)
     _, _, train_inner_idx, val_inner_idx = train_val_split_by_theme(
         df_train, train_ratio=0.8, random_state=seed, return_indices=True
@@ -324,12 +325,12 @@ def _expand_fold_rows_for_legacy(rows):
 def run_loto(X, y_male, y_female, df, device, seed=RANDOM_SEED, direction="male_first",
              use_vae=False, patience=PATIENCE, verbose=True, use_nested=False, loto_by_theme=False,
              all_images=False):
-    """direction: male_first → within=男性, cross=女性. female_first → within=女性, cross=男性.
-    use_nested: True なら内側 80/20 で LR と LATENT_DIM をグリッド探索し、最良で外側訓練全体を学習。
-    loto_by_theme: False なら theme_base（例: Acorns）で 1 fold = 約 248。True なら theme（例: Acorns 1）で 1 fold = 391。
-    all_images: True なら全 fold を実行（スキップなし）し、df 行順で全画像の予測を返す。
-    False なら n_test < MIN_TEST_LOTO の fold はスキップ。
-    Joint training（direction 引数は互換のため残すが無視）。
+    """direction: male_first → within=male, cross=female; female_first → within=female, cross=male.
+    use_nested: if True, grid-search LR and LATENT_DIM on an inner 80/20 split, then refit on all outer train.
+    loto_by_theme: False → fold by theme_base (e.g. Acorns; ~248 folds); True → by theme (e.g. Acorns 1; 391 folds).
+    all_images: if True, run every fold (no skip) and return predictions in df row order;
+    if False, skip folds with n_test < MIN_TEST_LOTO.
+    Joint training (direction is kept for compatibility but ignored).
     """
     _ = direction
     import itertools
@@ -413,7 +414,7 @@ def run_loto(X, y_male, y_female, df, device, seed=RANDOM_SEED, direction="male_
         if all_images:
             pred_male_all[test_idx] = p_m
             pred_female_all[test_idx] = p_f
-        # R² は「2 サンプル以上」の fold のみで定義。全体 R² はこれらの fold を集約した試行で算出
+        # R² is defined only for folds with ≥2 samples; overall R² pools those folds
         if n_test >= 2:
             all_y_m.append(y_m_te)
             all_p_m.append(p_m)
@@ -638,8 +639,8 @@ def main():
             mf, ff = _dual_direction_summaries(summary, oj)
             summary_loto_combined = {"joint": summary, "male_first": mf, "female_first": ff}
             _print_joint("LOTO", oj)
-            _print_overall("LOTO (male_first 表記)", mf["overall"])
-            _print_overall("LOTO (female_first 表記)", ff["overall"])
+            _print_overall("LOTO (male_first labeling)", mf["overall"])
+            _print_overall("LOTO (female_first labeling)", ff["overall"])
             all_rows_loto = _expand_fold_rows_for_legacy(rows)
             with open(out_loto / "summary.json", "w", encoding="utf-8") as f:
                 json.dump(summary_loto_combined, f, indent=2)
@@ -668,8 +669,8 @@ def main():
             mf, ff = _dual_direction_summaries(summary, oj)
             summary_loco_combined = {"joint": summary, "male_first": mf, "female_first": ff}
             _print_joint("LOCO", oj)
-            _print_overall("LOCO (male_first 表記)", mf["overall"])
-            _print_overall("LOCO (female_first 表記)", ff["overall"])
+            _print_overall("LOCO (male_first labeling)", mf["overall"])
+            _print_overall("LOCO (female_first labeling)", ff["overall"])
             all_rows_loco = _expand_fold_rows_for_legacy(rows)
             with open(out_loco / "summary.json", "w", encoding="utf-8") as f:
                 json.dump(summary_loco_combined, f, indent=2)

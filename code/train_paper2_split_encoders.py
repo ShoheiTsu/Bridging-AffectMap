@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Paper2 用: 分離 Encoder を最初から学習して保存する。
+Train split encoders from scratch for Paper2.
 
-- Encoder_m + Decoder_m を男性スコアで学習
-- Encoder_f + Decoder_f を女性スコアで学習
+- Encoder_m + Decoder_m on male scores
+- Encoder_f + Decoder_f on female scores
 
-出力:
+Outputs:
 - results/cvae_cross_gender/split_encoders/encoder_m.pt
 - results/cvae_cross_gender/split_encoders/encoder_f.pt
 """

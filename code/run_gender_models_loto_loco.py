@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-男女別ターゲットで Nested LOTO と Nested LOCO を実行する。
-- 男性: valence_male, arousal_male / 女性: valence_female, arousal_female
-- step1_loto_nested, step1_loco_nested と同一プロトコル（内側で alpha 最適化、テーマ/カテゴリ単位で leave-out）
-- 結果: results_gender/loto_nested/{male,female}/, results_gender/loco_nested/{male,female}/
+Run nested LOTO and nested LOCO for gender-specific targets.
+- Male: valence_male, arousal_male / Female: valence_female, arousal_female
+- Same protocol as step1_loto_nested / step1_loco_nested (inner alpha search; leave out by theme/category)
+- Outputs: results_gender/loto_nested/{male,female}/, results_gender/loco_nested/{male,female}/
 """
 import sys
 from pathlib import Path
@@ -245,7 +245,7 @@ def run_nested_loto(
     y_all_pred_clip = np.vstack(y_all_pred_clip)
     y_all_pred_vit = np.vstack(y_all_pred_vit)
     y_all_pred_fusion = np.vstack(y_all_pred_fusion)
-    # 列順: 第0列=Valence, 第1列=Arousal（target_cols = TARGET_MALE / TARGET_FEMALE の順）
+    # Column order: 0=Valence, 1=Arousal (same order as TARGET_MALE / TARGET_FEMALE)
     np.save(out_dir / "y_all_true.npy", y_all_true)
     np.save(out_dir / "y_all_pred_clip.npy", y_all_pred_clip)
     np.save(out_dir / "y_all_pred_vit.npy", y_all_pred_vit)
@@ -366,7 +366,7 @@ def run_nested_loco(
             "R2_clip_valence": round(r2_c_v, 4), "R2_clip_arousal": round(r2_c_a, 4), "R2_clip_mean": round(r2_c_m, 4),
             "R2_vit_valence": round(r2_v_v, 4), "R2_vit_arousal": round(r2_v_a, 4), "R2_vit_mean": round(r2_v_m, 4), "R2_fusion_mean": round(r2_f_m, 4)})
         y_all_true.append(y_te); y_all_pred_clip.append(pred_c); y_all_pred_vit.append(pred_v); y_all_pred_fusion.append(pred_f)
-        # Fig7 カテゴリ別 MSE 用: fold（=left_out カテゴリ）ごとに予測を保存
+        # Save per-fold predictions for category-wise MSE (fold = left-out category)
         fold_dir = out_dir / f"fold_{left_out}"
         fold_dir.mkdir(parents=True, exist_ok=True)
         np.save(fold_dir / "y_true.npy", y_te)
@@ -380,7 +380,7 @@ def run_nested_loco(
     y_all_pred_clip = np.vstack(y_all_pred_clip)
     y_all_pred_vit = np.vstack(y_all_pred_vit)
     y_all_pred_fusion = np.vstack(y_all_pred_fusion)
-    # 列順: 第0列=Valence, 第1列=Arousal（target_cols の順）
+    # Column order: 0=Valence, 1=Arousal (same order as target_cols)
     np.save(out_dir / "y_all_true.npy", y_all_true)
     np.save(out_dir / "y_all_pred_clip.npy", y_all_pred_clip)
     np.save(out_dir / "y_all_pred_vit.npy", y_all_pred_vit)
@@ -485,7 +485,7 @@ def main(
         print()
 
     print(f"Done. Results: {out_root}/loto_nested/{{male,female}}/, {out_root}/loco_nested/{{male,female}}/")
-    print("LOCO の summary.json と loco_nested.csv にカテゴリ別 R2_clip_valence/arousal, R2_vit_valence/arousal を保存済み。")
+    print("Wrote category-wise R2_clip_valence/arousal and R2_vit_valence/arousal to LOCO summary.json and loco_nested.csv.")
     print("Run python code/export_fig_gender_doc.py and python code/export_gender_r2_tables.py to update fig_gender_doc.")
 
 

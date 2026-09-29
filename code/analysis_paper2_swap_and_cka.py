@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Paper2 反証B/C:
-- B: Encoder swap 劣化（single split）
-- C: Encoder_m vs Encoder_f の CKA（linear CKA）
+Paper2 falsifiers B/C:
+- B: encoder-swap degradation (single split)
+- C: linear CKA between Encoder_m and Encoder_f
 """
 import sys
 from pathlib import Path

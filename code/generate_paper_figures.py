@@ -335,7 +335,7 @@ def _assign_regime_kmeans_clusters(
     k_aligned: int = 4,
     k_twisted: int = 4,
 ) -> dict:
-    """excess 中央値で aligned / twisted を分け、各レジーム内で k-means。"""
+    """Split aligned / twisted by median excess; k-means within each regime."""
     twisted = excess > np.median(excess)
     n = len(x)
     cluster_id = np.full(n, -1, dtype=int)
@@ -515,11 +515,11 @@ def render_va_scores_gif_frame(
     title: str = "",
 ) -> None:
     """
-  VA morph GIF 1 フレーム。
-  [0, n_black): 黒点のみ @ male VA
-  [n_black, n_black+n_ramp): male VA で aligned/twisted 色へ漸変
-  [n_black+n_ramp, n_black+n_ramp+n_morph): グレー male VA 固定 + 色付き点が female へ移動
-  [n_black+n_ramp+n_morph, ...): 終状態をホールド（n_hold フレーム）
+  One frame of the VA morph GIF.
+  [0, n_black): black points only at male VA
+  [n_black, n_black+n_ramp): ramp from black to aligned/twisted colours at male VA
+  [n_black+n_ramp, n_black+n_ramp+n_morph): grey points fixed at male VA; coloured points move to female
+  [n_black+n_ramp+n_morph, ...): hold final state (n_hold frames)
     """
     ax.clear()
     i = frame_idx
@@ -587,7 +587,7 @@ def render_points_morph_frame(
     ylabel: str,
     title: str = "",
 ) -> None:
-    """GIF 1 フレーム: 点のみで start → end へモーフィング。"""
+    """One GIF frame: morph points only from start → end."""
     ax.clear()
     t = float(np.clip(morph_t, 0.0, 1.0))
     pos = start + t * (end - start)
@@ -603,7 +603,7 @@ def render_points_morph_frame(
 
 # ── Legacy phi-flow helpers (flat overlay / residual; kept for reference) ──
 def _load_score_umap_flow_frame() -> pd.DataFrame:
-    """Score UMAP 上の male→female 変位と excess twist（geo_umap_disp − model_twist_pm_pf）。"""
+    """Male→female displacement and excess twist on score UMAP (geo_umap_disp − model_twist_pm_pf)."""
     twist = pd.read_csv(RES / "relational_cross_within_twist" / "relational_twist_per_image.csv")
     need = [
         "umap_score_male_x", "umap_score_male_y",
@@ -616,7 +616,7 @@ def _load_score_umap_flow_frame() -> pd.DataFrame:
 
 
 def _affine_umap_phi(pm: np.ndarray, pf: np.ndarray) -> np.ndarray:
-    """Score UMAP 上の最小二乗アフィン Φ̂: p_m ↦ A p_m + b（グローバル線形流れの代理）。"""
+    """Least-squares affine Φ̂ on score UMAP: p_m ↦ A p_m + b (global linear-flow proxy)."""
     ones = np.ones((len(pm), 1))
     design = np.hstack([pm, ones])
     coef, _, _, _ = np.linalg.lstsq(design, pf, rcond=None)
@@ -626,7 +626,7 @@ def _affine_umap_phi(pm: np.ndarray, pf: np.ndarray) -> np.ndarray:
 def _binned_mean_vectors(
     x: np.ndarray, y: np.ndarray, u: np.ndarray, v: np.ndarray, *, n: int = 20,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """規則格子上の平均ベクトル（streamplot 用）。"""
+    """Mean vectors on a regular grid (for streamplot)."""
     xedges = np.linspace(x.min(), x.max(), n + 1)
     yedges = np.linspace(y.min(), y.max(), n + 1)
     xc = 0.5 * (xedges[:-1] + xedges[1:])
@@ -650,7 +650,7 @@ def _binned_mean_vectors(
 def _draw_distribution_overlay(
     ax, pts: np.ndarray, *, outline: bool, color: str, label: str, alpha: float | None = None,
 ) -> None:
-    """分布の輪郭（male）または塗り（female）を ConvexHull で薄く重ねる。"""
+    """Light ConvexHull overlay: outline for male, fill for female."""
     if len(pts) < 4:
         return
     hull = ConvexHull(pts)
@@ -665,7 +665,7 @@ def _draw_distribution_overlay(
 
 
 def _prepare_phi_flow_data() -> dict:
-    """phi flow 図・GIF 共通の配列を構築。"""
+    """Build arrays shared by the phi-flow figure and GIF."""
     twist = _load_score_umap_flow_frame()
     pm = twist[["umap_score_male_x", "umap_score_male_y"]].to_numpy()
     pf = twist[["umap_score_female_x", "umap_score_female_y"]].to_numpy()
@@ -715,7 +715,7 @@ def _draw_plane_grid_3d(
 def _draw_phi_flow_flat_ax(
     ax, data: dict, *, fig: plt.Figure | None = None, morph_t: float = 1.0, show_regions: bool = True,
 ) -> None:
-    """1 枚平面への重ね描画（静止画 or GIF フレーム）。"""
+    """Draw one overlaid plane (static figure or GIF frame)."""
     pm, pf = data["pm"], data["pf"]
     disp, excess = data["disp"], data["excess"]
     phi_disp = data["phi_disp"]
@@ -822,7 +822,7 @@ def _draw_phi_flow_residual_ax(ax, data: dict) -> None:
 
 
 def _draw_phi_flow_dual_plane_3d(ax, data: dict, *, z0: float = 0.0, z1: float = 5.0) -> plt.cm.ScalarMappable:
-    """z 軸で male / female score 平面を分離し、層間コネクタでねじれを可視化。"""
+    """Separate male/female score planes on z; show twist with inter-layer connectors."""
     pm, pf = data["pm"], data["pf"]
     excess = data["excess"]
     phi_pred = data["phi_pred"]
@@ -3885,27 +3885,27 @@ def paper_supp_cross_within() -> tuple[Path, Path]:
 
 def write_readme(paths: list[tuple[str, Path, Path]]) -> None:
     lines = [
-        "# Paper_fig — Nature Communications メイン Figure 出力",
+        "# Paper_fig — main Nature Communications figures",
         "",
-        "生成: `python3 code/generate_paper_figures.py`",
+        "Generate with: `python3 code/generate_paper_figures.py`",
         "",
-        "各ファイルは **PNG** (300 dpi) と **SVG** の両形式。パネルは JSON/CSV の一次データから描画する。",
+        "Each file is written as **PNG** (300 dpi) and **SVG**. Panels are drawn from primary JSON/CSV data.",
         "",
-        "## 本文 6 図（NatComm 番号）",
+        "## Main-text figures (NatComm numbering)",
         "",
-        "| ファイル | Results | 主パネル |",
-        "|----------|---------|----------|",
-        "| Paper_Fig1_research_design | 全体 | 概念 A–D：凍結CLIP / 読み出し / 2境界 / 解析階層 |",
+        "| File | Results | Main panels |",
+        "|------|---------|-------------|",
+        "| Paper_Fig1_research_design | Overview | Concept A–D: frozen CLIP / readout / two boundaries / analysis hierarchy |",
         "| Paper_Fig2_decoder_locus_lambda | R1 | A: strip+boot+label-null / B: slopegraph / C: CKA vs null / D: λ common+contour |",
-        "| Paper_Fig3_linear_bridge_composition | R2–R3+Z3 | 5点 violin / Φ地形 / 固定点 vs 重心 / **汎化曲線 E / 最小被覆+3basin F / 有効解雲 G / 合成 H** |",
-        "| Paper_Fig4_japan_transfer_reliability | R4（§3） | 予測vs実測 / R² vs 天井 / bootstrap CI（LOSO→Supp） |",
-        "| Paper_Fig5_residual_geometry | R5–R6 | 残差 violin / excess twist map / **VA残差場トポロジー(M↔F)** |",
-        "| Paper_Fig6_case_translation | R7 | **発見**: 等価実例（非Person）＋ Φ限界×翻訳有効の VA 局在 |",
+        "| Paper_Fig3_linear_bridge_composition | R2–R3+Z3 | 5-point violin / Φ field / fixed points vs centroids / **generalisation E / minimal cover+3 basins F / effective density G / composition H** |",
+        "| Paper_Fig4_japan_transfer_reliability | R4 (§3) | Predicted vs observed / R² vs ceiling / bootstrap CI (LOSO→Supp) |",
+        "| Paper_Fig5_residual_geometry | R5–R6 | Residual violin / excess twist map / **VA residual-field topology (M↔F)** |",
+        "| Paper_Fig6_case_translation | R7 | **Discovery**: non-Person exemplars + VA co-localization of Φ limits vs translation |",
         "",
         "## Supplementary figures generated here",
         "",
-        "| ファイル | 内容 |",
-        "|----------|------|",
+        "| File | Content |",
+        "|------|---------|",
         "| Paper_SuppFig_cross_within_bias | cross−within δ t-maps (M→F / F→M only) |",
         "| Paper_SuppFig_minimal_anchor_coverage | minimal coverage procedure |",
         "| Paper_SuppFig_matched_k_minimal_comparison | matched-k cell Jaccard |",
@@ -3919,26 +3919,26 @@ def write_readme(paths: list[tuple[str, Path, Path]]) -> None:
         "`plot_suppfig_lambda_transform_vs_phi.py`,",
         "`plot_predictive_translation_prototype.py`, `plot_paper_fig345_manuscript.py`).",
         "",
-        "## データソース",
+        "## Data sources",
         "",
-        "- Z3: `results/anchor_structure/z3_generalization_curve_*.csv`、`z3_generalization.json`",
-        "- Z4/Z5 最小被覆: `results/anchor_structure/z5_minimal_anchor_profile.json`",
+        "- Z3: `results/anchor_structure/z3_generalization_curve_*.csv`, `z3_generalization.json`",
+        "- Z4/Z5 minimal coverage: `results/anchor_structure/z5_minimal_anchor_profile.json`",
         "- Fig2: `paper2_layer1_fig2_*.csv/json/npz`, `lambda_gender_diff_common_ref_fig2.npz`",
-        "- OT/線形: `cvae_cross_gender/paper2_ot_five_point_fixedsplit.json`",
-        "- 文化転移: `population_bridge_analysis/{reliability_ceiling,subject_bootstrap_ci,loso_stability}.json`",
-        "- 残差: `population_bridge_analysis/residual_*.{json,csv}`",
-        "- 等価: `equivalence_nontriviality_themecv.json` + `paper2_emotion_equivalent_pairs_themecv.csv`",
+        "- OT/linear: `cvae_cross_gender/paper2_ot_five_point_fixedsplit.json`",
+        "- Culture transfer: `population_bridge_analysis/{reliability_ceiling,subject_bootstrap_ci,loso_stability}.json`",
+        "- Residuals: `population_bridge_analysis/residual_*.{json,csv}`",
+        "- Equivalence: `equivalence_nontriviality_themecv.json` + `paper2_emotion_equivalent_pairs_themecv.csv`",
         "",
-        "## 注記",
+        "## Notes",
         "",
-        "- 棒グラフ全廃。分布は violin/strip、CI は点+errorbar。",
+        "- No bar charts; use violin/strip for distributions and point+errorbar for CIs.",
         "- Fig3: quantity curve / minimal coverage / landmark density.",
         "- Fig4: Japan transfer and reliability ceiling.",
         "- Fig5/Fig6: residual geometry and exemplar translation.",
         "- Fig6: discovery panels; scalar residual×improvement ρ≈0.90 is not interpreted.",
         "- Φ residual × equivalence-distance independence panel is in the Supplement.",
         "",
-        "## 生成ファイル",
+        "## Generated files",
         "",
     ]
     for stem, png, svg in paths:

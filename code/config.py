@@ -1,46 +1,46 @@
 """
-論文B（性別・男女差）用設定: EmotionPro2 出力先、データは EmotionPro1 を参照。
+Settings for the gender-bridging analyses: outputs under EmotionPro2; data from EmotionPro1.
 """
 from pathlib import Path
 
-# EmotionPro2 をプロジェクトルートとする（出力先）
+# Project root = EmotionPro2 (outputs)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-# データ・既存結果は EmotionPro1 を参照（EmotionPro2 と EmotionPro1 は project/ 直下の兄弟フォルダ想定）
+# Data and prior results live under EmotionPro1 (sibling of EmotionPro2 under project/)
 EMOTIONPRO1 = PROJECT_ROOT.parent / "EmotionPro1"
 DATA_DIR = EMOTIONPRO1 / "data"
 RESULTS_DIR = EMOTIONPRO1 / "results"
 RESULTS_2DPRED = EMOTIONPRO1 / "results_2dpred"
 CODE_DIR = PROJECT_ROOT / "code"
 
-# 論文B の出力先: EmotionPro2 内
+# Analysis outputs under EmotionPro2
 RESULTS_GENDER = PROJECT_ROOT / "results"
 FIG_INTEGRATED = PROJECT_ROOT / "fig_doc"
-# クロス性別 cVAE（Encoder + Male/Female Decoder）の保存先
+# Cross-gender cVAE (shared encoder + male/female decoders)
 CVAE_CROSS_GENDER_DIR = RESULTS_GENDER / "cvae_cross_gender"
 
-# データ
+# Data
 OASIS_SCORES_CSV = DATA_DIR / "oasis_scores.csv"
 IMAGES_DIR = DATA_DIR / "images"
 
-# 結果保存先（Step 別）— 読み取りは EmotionPro1
+# Step-wise result dirs (read from EmotionPro1)
 RESULTS_STEP1 = RESULTS_DIR / "step1_individual_models"
 RESULTS_STEP2 = RESULTS_DIR / "step2_image_characteristics"
 RESULTS_STEP3 = RESULTS_DIR / "step3_fusion_model"
 RESULTS_LAYER = RESULTS_DIR / "step_layer_analysis"
 
-# 評価
+# Evaluation
 TARGET_COLUMNS = ["valence", "arousal"]
 CATEGORY_COLUMN = "category"
 IMAGE_ID_COLUMN = "image_id"
 VALENCE_AROUSAL_SCALE_MIN = 1.0
 VALENCE_AROUSAL_SCALE_MAX = 7.0
 
-# モデル
+# Model
 CLIP_MODEL_NAME = "ViT-B-32"
 CLIP_PRETRAINED = "openai"
 VIT_MODEL_NAME = "google/vit-base-patch16-224"
 
-# 学習・評価
+# Training / evaluation
 RANDOM_SEED = 42
 IMAGE_SIZE = 224
 BATCH_SIZE = 32
@@ -56,7 +56,7 @@ ALPHA_LOCO_OPTIMIZED_CLIP = 256.93
 ALPHA_LOCO_OPTIMIZED_VIT = 802.60
 ALPHA_FUSION_DEFAULT = 10.0
 
-# 層分析用
+# Layer analysis
 LAYERS_TO_EVAL = [3, 6, 9, 12]
 ALPHA_LAYER_LOTO_CLIP = 0.23
 ALPHA_LAYER_LOTO_VIT = 0.10
