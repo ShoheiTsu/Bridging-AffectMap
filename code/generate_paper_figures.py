@@ -1330,7 +1330,13 @@ def _load_z5_minimal_anchor_data() -> tuple[dict, dict, tuple[float, float], tup
 
 
 def _load_z5_matched_k4_anchor_data() -> tuple[dict, dict, tuple[float, float], tuple[float, float]]:
-    from analysis_anchor_structure import z5_load_reference_points, z5_cell_center
+    from analysis_anchor_structure import (
+        SRC_F,
+        va_cell_ids,
+        z5_cell_center,
+        z5_load_reference_points,
+    )
+    import analysis_population_bridge_suite as pb
 
     z5_path = ANC / "z5_minimal_anchor_profile.json"
     z5cat_path = ANC / "z5_category_generalization_matrix.json"
@@ -1346,11 +1352,30 @@ def _load_z5_matched_k4_anchor_data() -> tuple[dict, dict, tuple[float, float], 
 
     m_prof = z5["profiles"]["MtoF"]
     f_row = z5cat["directions"]["FtoM_k4"]["train_rows"]["Unrestricted"]
-    f_cells = [int(c) for c in f_row["cell_ids"]]
-    f_rep = []
-    for cid in f_cells:
+    # cell_ids in the JSON are sorted(occupied); image_idx is selection order.
+    # Pair each image to its source-VA cell (F→M source = female ratings).
+    f_imgs = [int(i) for i in f_row.get("image_idx", [])]
+    oasis = pb.load_oasis_meta(pb.OASIS_SCORES_CSV)
+    f_rep: list[dict] = []
+    for idx in f_imgs:
+        row = oasis.iloc[int(idx)]
+        xy = np.asarray([[float(row[SRC_F[0]]), float(row[SRC_F[1]])]], float)
+        cid = int(va_cell_ids(xy)[0])
         v, a = z5_cell_center(cid)
-        f_rep.append({"cell_id": int(cid), "v": float(v), "a": float(a)})
+        f_rep.append({
+            "cell_id": cid,
+            "v": float(v),
+            "a": float(a),
+            "image_id": int(idx),
+            "image_id_label": f"I{int(idx) + 1}",
+        })
+    f_cells = sorted({int(c["cell_id"]) for c in f_rep})
+    # Prefer recorded cell set when present (same membership, may differ only in order).
+    recorded = [int(c) for c in f_row.get("cell_ids", [])]
+    if recorded and set(recorded) != set(f_cells):
+        raise ValueError(
+            f"FtoM_k4 cell mismatch: recorded={recorded} from images={f_cells}"
+        )
 
     profiles = {
         "MtoF": {
@@ -2157,39 +2182,161 @@ def _export_fig3_panel_svgs(
     )
 
 
+def _load_oasis_meta_cached():
+    import analysis_population_bridge_suite as pb
+
+    if not hasattr(_load_oasis_meta_cached, "_df"):
+        _load_oasis_meta_cached._df = pb.load_oasis_meta(pb.OASIS_SCORES_CSV)
+    return _load_oasis_meta_cached._df
+
+
+def _load_oasis_thumb(image_idx: int, *, size: int = 52) -> np.ndarray | None:
+    """Square crop thumbnail from OASIS row index (0-based image_idx)."""
+    meta = _load_oasis_meta_cached()
+    if image_idx < 0 or image_idx >= len(meta):
+        return None
+    path = Path(str(meta.iloc[int(image_idx)]["image_path"]))
+    if not path.exists():
+        return None
+    img = mpimg.imread(str(path))
+    if img.ndim == 2:
+        img = np.stack([img] * 3, axis=-1)
+    if img.shape[-1] == 4:
+        img = img[..., :3]
+    h, w = img.shape[:2]
+    side = min(h, w)
+    y0, x0 = (h - side) // 2, (w - side) // 2
+    crop = img[y0:y0 + side, x0:x0 + side]
+    yy = (np.linspace(0, side - 1, size)).astype(int)
+    xx = (np.linspace(0, side - 1, size)).astype(int)
+    return crop[yy][:, xx]
+
+
+def _draw_matched_k_anchor_image_panel(
+    ax_map,
+    ax_th,
+    profiles: dict,
+    overlap: dict,
+    *,
+    refs_centroid: tuple[float, float],
+    refs_fp: tuple[float, float],
+    title: str,
+    basins: list[dict] | None = None,
+) -> None:
+    """Matched k=4: VA map with cell ids + numbered OASIS thumbnail strip."""
+    from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+
+    ov, oa = refs_centroid
+    gv, ga = refs_fp
+    colors = {"MtoF": "#1565c0", "FtoM": "#c62828"}
+    labels = {"MtoF": "M→F k=4", "FtoM": "F→M forced k=4"}
+    _draw_minimal_anchor_grid(ax_map, ov, oa)
+    if basins:
+        _draw_shared_basins(ax_map, basins)
+    ax_map.scatter([gv], [ga], s=70, marker="*", c="#2e7d32", edgecolors="white", zorder=5)
+    ax_map.scatter([ov], [oa], s=45, marker="D", c="#616161", edgecolors="white", zorder=5)
+
+    entries: list[tuple[str, dict]] = []
+    for dshort, prof in profiles.items():
+        col = colors.get(dshort, "#333")
+        for i, cell in enumerate(prof["representative_cells"]):
+            v, a = float(cell["v"]), float(cell["a"])
+            ax_map.scatter(
+                [v], [a], s=115, c=col, alpha=0.92,
+                edgecolors="white", linewidths=0.7,
+                label=labels.get(dshort, dshort) if i == 0 else None, zorder=4,
+            )
+            ax_map.text(
+                v, a, str(int(cell["cell_id"])),
+                ha="center", va="center", fontsize=7, color="white",
+                fontweight="bold", zorder=6,
+            )
+            entries.append((dshort, cell))
+
+    j = float(overlap.get("jaccard", float("nan")))
+    shared = overlap.get("shared_cells", overlap.get("shared", []))
+    m_gp = profiles.get("MtoF", {}).get("greedy_primary", {})
+    f_gp = profiles.get("FtoM", {}).get("greedy_primary", {})
+    m_k = int(m_gp.get("k", overlap.get("MtoF_k", 4)))
+    f_k = int(f_gp.get("k", overlap.get("FtoM_k", 4)))
+    m_frac = float(m_gp.get("frac_of_ceiling", float("nan")))
+    f_frac = float(f_gp.get("frac_of_ceiling", float("nan")))
+    ax_map.set_xlim(VA_LIM_FIG3)
+    ax_map.set_ylim(VA_LIM_FIG3)
+    ax_map.set_aspect("equal")
+    ax_map.set_xlabel("Valence (source VA)")
+    ax_map.set_ylabel("Arousal (source VA)")
+    ax_map.set_title(
+        f"{title}\n"
+        f"M→F k={m_k} ({m_frac:.0%} ceiling); F→M forced k={f_k} "
+        f"({f_frac:.0%} ceiling); Jaccard={j:.2f}; shared {shared}",
+        fontsize=7.6,
+    )
+    ax_map.legend(frameon=False, fontsize=6.0, loc="lower right")
+
+    ax_th.set_xlim(0, max(len(entries), 1))
+    ax_th.set_ylim(0, 1)
+    ax_th.set_xticks([])
+    ax_th.set_yticks([])
+    for spine in ax_th.spines.values():
+        spine.set_visible(False)
+    ax_th.set_title("Cell id → image (blue = M→F, red = F→M)", fontsize=7.2, pad=2)
+    for i, (dshort, cell) in enumerate(entries):
+        col = colors.get(dshort, "#333")
+        x = i + 0.5
+        idx = cell.get("image_id", cell.get("image_idx"))
+        rgb = _load_oasis_thumb(int(idx), size=72) if idx is not None else None
+        if rgb is not None:
+            ab = AnnotationBbox(
+                OffsetImage(rgb, zoom=0.70),
+                (x, 0.58),
+                frameon=True,
+                bboxprops=dict(boxstyle="round,pad=0.12", fc="white", ec=col, lw=1.5),
+                pad=0.02,
+                zorder=3,
+            )
+            ax_th.add_artist(ab)
+        ax_th.text(
+            x, 0.06, str(int(cell["cell_id"])),
+            ha="center", va="bottom", fontsize=8.5, color=col, fontweight="bold",
+        )
+
+
 def paper_supp_matched_k_minimal_comparison() -> tuple[Path, Path]:
     """
     Matched-k=4 position comparison demoted from main-text Fig.3-F.
 
     Main-text F now shows true minimal coverage (M→F k=4 / F→M k=3) on shared
     basins; this Supplement keeps the forced-k=4 Jaccard overlay for readers who
-    want a cardinality-matched cell-set comparison.
+    want a cardinality-matched cell-set comparison. Panel B shows the matched-k
+    anchors as cell-numbered OASIS thumbnails.
     """
     profiles_k4, overlap_k4, cen, fp = _load_z5_matched_k4_anchor_data()
     profiles_min, overlap_min, _, _ = _load_z5_minimal_anchor_data()
     density = _load_anchor_point_density_data("0p1")
     basins = _estimate_shared_affine_basins(density)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10.4, 5.0), constrained_layout=True)
+    fig = plt.figure(figsize=(11.6, 6.2))
+    gs = fig.add_gridspec(2, 2, height_ratios=[3.4, 1.2], hspace=0.28, wspace=0.28)
+    ax_a = fig.add_subplot(gs[:, 0])
+    ax_b_map = fig.add_subplot(gs[0, 1])
+    ax_b_th = fig.add_subplot(gs[1, 1])
 
-    ax = axes[0]
-    panel_label(ax, "A")
+    panel_label(ax_a, "A")
     _draw_minimal_anchor_direction_panel(
-        ax, profiles_min, overlap_min,
+        ax_a, profiles_min, overlap_min,
         refs_centroid=cen, refs_fp=fp,
         title="True minimal coverage (main-text Fig.3-F)",
         basins=basins,
         matched_k=False,
     )
 
-    ax = axes[1]
-    panel_label(ax, "B")
-    _draw_minimal_anchor_direction_panel(
-        ax, profiles_k4, overlap_k4,
+    panel_label(ax_b_map, "B")
+    _draw_matched_k_anchor_image_panel(
+        ax_b_map, ax_b_th, profiles_k4, overlap_k4,
         refs_centroid=cen, refs_fp=fp,
-        title="Matched k=4 position comparison",
+        title="Matched k=4 anchors (cell id → image)",
         basins=basins,
-        matched_k=True,
     )
 
     fig.suptitle(
@@ -2199,6 +2346,105 @@ def paper_supp_matched_k_minimal_comparison() -> tuple[Path, Path]:
         fontsize=10.0,
     )
     return save_dual(fig, "Paper_SuppFig_matched_k_minimal_comparison")
+
+
+def paper_supp_anchor_point_density_step0p1() -> tuple[Path, Path]:
+    """Four-panel landmark point-density Supplement (shared A–C color scale; VA 1–7)."""
+    density = _load_anchor_point_density_data("0p1")
+    lim = VA_LIM_FIG3  # full OASIS VA window (1–7), matching Fig.3
+    edges = np.arange(lim[0], lim[1] + 0.01, 1.0)
+    step = float(density["grid_step"])
+    point_packs = [
+        ("A", density["points_m2f_k4"], f"M→F point density (k=4; step={step:.2f})"),
+        ("B", density["points_f2m_k3"], f"F→M point density (k=3; step={step:.2f})"),
+        ("C", density["points_f2m_k4"], f"F→M point density (k=4; step={step:.2f})"),
+    ]
+    # Re-evaluate KDE on (1, 7); stored artifact grids are on (1.5, 7.0).
+    dens_maps: list[tuple[str, np.ndarray, np.ndarray, np.ndarray, np.ndarray, str]] = []
+    for lab, pts, title in point_packs:
+        gx, gy, zz = _kde_on_lim(np.asarray(pts, float), lim=lim)
+        dens_maps.append((lab, gx, gy, zz, np.asarray(pts, float), title))
+    vmax = max(float(np.nanmax(zz)) for _, _, _, zz, _, _ in dens_maps)
+    vmax = max(vmax, 1e-12)
+
+    fig, axes = plt.subplots(1, 4, figsize=(16.8, 4.4), constrained_layout=True)
+    im0 = None
+    for ax, (lab, gx, gy, zz, pts, title) in zip(axes[:3], dens_maps):
+        panel_label(ax, lab)
+        im = ax.imshow(
+            zz,
+            extent=[lim[0], lim[1], lim[0], lim[1]],
+            origin="lower", cmap="viridis", vmin=0.0, vmax=vmax,
+            aspect="equal", zorder=1, alpha=0.9,
+        )
+        if im0 is None:
+            im0 = im
+        for e in edges:
+            ax.axvline(e, color="0.88", lw=0.6, zorder=0)
+            ax.axhline(e, color="0.88", lw=0.6, zorder=0)
+        vals = zz[np.isfinite(zz) & (zz > 0)]
+        if len(vals):
+            levels = np.unique(np.quantile(vals, [0.65, 0.80, 0.92]))
+            ax.contour(
+                gx, gy, zz, levels=levels,
+                colors="white", linewidths=0.8, alpha=0.8, zorder=2,
+            )
+        if len(pts):
+            rng = np.random.default_rng(0)
+            n = min(len(pts), 4000)
+            idx = rng.choice(len(pts), size=n, replace=False)
+            ax.scatter(
+                pts[idx, 0], pts[idx, 1], s=6, c="white", alpha=0.12, zorder=3,
+            )
+        ax.set_xlim(lim)
+        ax.set_ylim(lim)
+        ax.set_xticks(edges)
+        ax.set_yticks(edges)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_box_aspect(1)
+        ax.set_xlabel("Valence")
+        ax.set_ylabel("Arousal")
+        ax.set_title(title, fontsize=9)
+
+    fig.colorbar(
+        im0, ax=list(axes[:3]), fraction=0.025, pad=0.02, label="point density",
+    )
+
+    ax = axes[3]
+    panel_label(ax, "D")
+    zz_m = dens_maps[0][3]  # M→F k=4
+    zz_f = dens_maps[2][3]  # F→M k=4
+    diff = zz_m - zz_f
+    dmax = max(float(np.nanmax(np.abs(diff))), 1e-12)
+    imd = ax.imshow(
+        diff,
+        extent=[lim[0], lim[1], lim[0], lim[1]],
+        origin="lower", cmap="coolwarm", vmin=-dmax, vmax=dmax,
+        aspect="equal",
+    )
+    for e in edges:
+        ax.axvline(e, color="0.88", lw=0.6, zorder=0)
+        ax.axhline(e, color="0.88", lw=0.6, zorder=0)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_xticks(edges)
+    ax.set_yticks(edges)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_box_aspect(1)
+    ax.set_xlabel("Valence")
+    ax.set_ylabel("Arousal")
+    ax.set_title(
+        f"Point-density difference (step={step:.2f})\nM→F k=4 minus F→M k=4",
+        fontsize=9,
+    )
+    fig.colorbar(imd, ax=ax, fraction=0.046, pad=0.03, label="density difference")
+
+    fig.suptitle(
+        f"Supp. Fig. | Density of effective landmark points (grid step={step:.2f})\n"
+        "A–C share one color scale; D is a signed difference map",
+        y=1.03, fontsize=10.5,
+    )
+    return save_dual(fig, "Paper_SuppFig_anchor_point_density_step0p1")
 
 
 def _load_person_bottleneck_payload() -> tuple[dict, list[str], list[tuple]]:
@@ -2910,11 +3156,54 @@ def _draw_fig5_residual_violin(ax, per_img: pd.DataFrame, res: dict) -> None:
     groups = {c: per_img.loc[per_img["category"] == c, "residual_l2"].to_numpy() for c in order}
     vcolors = ["#ffb74d" if c == "Person" else "#90caf9" for c in order]
     violin_strip(ax, groups, colors=vcolors, ylabel="Per-image residual L2 after Φ")
+    means = [float(np.mean(groups[c])) for c in order]
+    ax.scatter(
+        range(len(order)), means,
+        s=55, marker="D", c="#212121", edgecolors="white", linewidths=0.8,
+        zorder=5, label="mean",
+    )
+    ax.legend(frameon=False, fontsize=7, loc="upper left")
     p_po = res["gender_oasis_900"]["person_vs_object_permutation_p"]
     cm = res["gender_oasis_900"]["category_means"]
     ax.set_title(
         f"Person-enriched residual\n"
-        f"Person {cm['Person']:.3f} vs Object {cm['Object']:.3f} (perm p={p_po:.3f})",
+        f"Person mean {cm['Person']:.3f} vs Object {cm['Object']:.3f} "
+        f"(perm p={p_po:.3f})",
+        fontsize=8.8,
+    )
+
+
+def _draw_fig5_residual_mean_sd_bars(ax, per_img: pd.DataFrame, res: dict) -> None:
+    """Category mean ± SD of post-Φ residual L2 (companion to the violin)."""
+    order = [c for c in ["Scene", "Animal", "Object", "Person"] if c in per_img["category"].unique()]
+    means, sds, ns = [], [], []
+    for c in order:
+        y = per_img.loc[per_img["category"] == c, "residual_l2"].to_numpy(float)
+        means.append(float(np.mean(y)))
+        sds.append(float(np.std(y, ddof=1)) if len(y) > 1 else 0.0)
+        ns.append(len(y))
+    colors = ["#ffb74d" if c == "Person" else "#90caf9" for c in order]
+    x = np.arange(len(order))
+    ax.bar(
+        x, means, yerr=sds, color=colors, edgecolor="0.35", linewidth=0.8,
+        width=0.72, capsize=4, error_kw=dict(ecolor="0.25", lw=1.1, capthick=1.1),
+        zorder=2,
+    )
+    for i, (m, sd, n) in enumerate(zip(means, sds, ns)):
+        ax.text(
+            i, m + sd + 0.02, f"{m:.3f}",
+            ha="center", va="bottom", fontsize=7.5, color="0.2",
+        )
+    p_po = res["gender_oasis_900"]["person_vs_object_permutation_p"]
+    cm = res["gender_oasis_900"]["category_means"]
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{c}\n(n={n})" for c, n in zip(order, ns)])
+    ax.set_ylabel("Mean residual L2 after Φ (± SD)")
+    ax.set_ylim(0, max(m + s for m, s in zip(means, sds)) * 1.18)
+    ax.set_title(
+        f"Category residual (mean ± SD)\n"
+        f"Person {cm['Person']:.3f} vs Object {cm['Object']:.3f} "
+        f"(perm p={p_po:.3f})",
         fontsize=8.8,
     )
 
@@ -3013,6 +3302,11 @@ def _export_fig5_panel_svgs(d: dict) -> None:
     fig_a.tight_layout()
     _write(fig_a, "Paper_Fig5_panelA_category_residual")
 
+    fig_a_bar, ax = plt.subplots(figsize=(5.2, 4.6))
+    _draw_fig5_residual_mean_sd_bars(ax, d["per_img"], d["res"])
+    fig_a_bar.tight_layout()
+    _write(fig_a_bar, "Paper_Fig5_panelA_category_residual_mean_sd")
+
     fig_b, ax = plt.subplots(figsize=(5.2, 4.6))
     _draw_person_bottleneck_curve(ax, d["pb_payload"], d["pb_cats"], d["pb_specs"])
     fig_b.tight_layout()
@@ -3047,7 +3341,8 @@ def paper_fig6_case_translation() -> tuple[Path, Path]:
     """NatComm Fig.6 — discovery: what case translation is, and where it helps.
 
     Circular rule: no scalar residual×improvement ρ≈0.90; VA spatial structure only.
-    Non-triviality and split-robustness numerics are reported in Supplementary tables.
+    Method checks (null / VA lines / weak ρ≈0.16) → Paper_SuppFig_case_translation_validation;
+    fixed-split robustness → Paper_SuppFig_case_translation_split_robustness.
     """
     from plot_fig6_case_translation_discovery import make_fig6_discovery
 
@@ -3057,18 +3352,109 @@ def paper_fig6_case_translation() -> tuple[Path, Path]:
     return png, svg
 
 
+def paper_supp_phi_prediction_asymmetry() -> tuple[Path, Path]:
+    """
+    Bidirectional Φ asymmetry — displacement fields + round-trip only.
+
+    Panels: a Φ_mf on male VA; b Φ_fm on female VA; c round-trip residual.
+    Transition matrices, directional residual imbalance, and image exemplars
+    are omitted (not cited in the main text).
+    """
+    from analysis_population_bridge_suite import fit_affine
+    from config import OASIS_SCORES_CSV
+    from dataset import load_oasis_meta
+
+    oasis = load_oasis_meta(OASIS_SCORES_CSV)
+    cols = ["valence_male", "arousal_male", "valence_female", "arousal_female"]
+    df = oasis[oasis[cols].notna().all(axis=1)].copy().reset_index(drop=True)
+    ym = df[["valence_male", "arousal_male"]].to_numpy(float)
+    yf = df[["valence_female", "arousal_female"]].to_numpy(float)
+    phi_mf = fit_affine(ym, yf)
+    phi_fm = fit_affine(yf, ym)
+    pred_f = phi_mf.apply(ym)
+    rt_m = phi_fm.apply(pred_f)
+    err_rt_m = np.linalg.norm(rt_m - ym, axis=1)
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.2, 4.4), constrained_layout=True)
+    rng = np.random.default_rng(0)
+    take = rng.choice(len(df), size=min(120, len(df)), replace=False)
+
+    ax = axes[0]
+    panel_label(ax, "A")
+    ax.scatter(ym[:, 0], ym[:, 1], s=6, c="#90CAF9", alpha=0.35, edgecolors="none")
+    d = pred_f - ym
+    ax.quiver(
+        ym[take, 0], ym[take, 1], d[take, 0], d[take, 1],
+        angles="xy", scale_units="xy", scale=1.0, width=0.003,
+        color="#1565C0", alpha=0.75,
+    )
+    ax.set_xlim(1, 7)
+    ax.set_ylim(1, 7)
+    ax.set_aspect("equal")
+    ax.set_xlabel("Valence (male)")
+    ax.set_ylabel("Arousal (male)")
+    ax.set_title(r"A  $\Phi_{mf}$ displacement on male VA", fontsize=9)
+
+    ax = axes[1]
+    panel_label(ax, "B")
+    pred_m = phi_fm.apply(yf)
+    ax.scatter(yf[:, 0], yf[:, 1], s=6, c="#EF9A9A", alpha=0.35, edgecolors="none")
+    d2 = pred_m - yf
+    ax.quiver(
+        yf[take, 0], yf[take, 1], d2[take, 0], d2[take, 1],
+        angles="xy", scale_units="xy", scale=1.0, width=0.003,
+        color="#C62828", alpha=0.75,
+    )
+    ax.set_xlim(1, 7)
+    ax.set_ylim(1, 7)
+    ax.set_aspect("equal")
+    ax.set_xlabel("Valence (female)")
+    ax.set_ylabel("Arousal (female)")
+    ax.set_title(r"B  $\Phi_{fm}$ displacement on female VA", fontsize=9)
+
+    ax = axes[2]
+    panel_label(ax, "C")
+    sc = ax.scatter(
+        ym[:, 0], ym[:, 1], c=err_rt_m, s=12, cmap="magma",
+        vmin=0, vmax=float(np.quantile(err_rt_m, 0.98)),
+        edgecolors="none", alpha=0.85,
+    )
+    ax.set_xlim(1, 7)
+    ax.set_ylim(1, 7)
+    ax.set_aspect("equal")
+    ax.set_xlabel("Valence (male)")
+    ax.set_ylabel("Arousal (male)")
+    ax.set_title(
+        r"C  Round-trip residual"
+        "\n"
+        r"$\|\Phi_{fm}(\Phi_{mf}(y_m))-y_m\|$"
+        f"  mean={err_rt_m.mean():.2f}",
+        fontsize=9,
+    )
+    fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.03).set_label("round-trip L2")
+
+    fig.suptitle(
+        "Supp. Fig. | Bidirectional asymmetry of the affine map\n"
+        r"Independent $\Phi_{mf}$ / $\Phi_{fm}$ on n=900; maps are not inverses "
+        r"($\Phi_{fm}\neq\Phi_{mf}^{-1}$)",
+        fontsize=10.5,
+    )
+    return save_dual(fig, "Paper_SuppFig_phi_prediction_asymmetry_va_images")
+
+
 def paper_supp_residual_field_topology() -> tuple[Path, Path]:
     """
-    Method detail for Fig.5-C: both-direction residual fields + candidate strips.
-    Curl mathematics and exemplars are hypothesis-generating.
+    Post-Φ residual geometry: magnitude + walker dwell with residual-field arrows.
+
+    Dwell panels carry the residual vector field (same arrows used for curl
+    diagnostics); a separate |curl| heatmap row is omitted. Exploratory.
     """
     from plot_residual_field_topology import (
         DIR_SPECS,
         analyze_direction,
         build_frame,
         make_grid,
-        _draw_cand_strip,
-        _draw_field_panel,
+        prepare_stream,
     )
 
     df, _meta = build_frame()
@@ -3081,43 +3467,102 @@ def paper_supp_residual_field_topology() -> tuple[Path, Path]:
         )
         for d in ("MtoF", "FtoM")
     }
-    fig = plt.figure(figsize=(12.4, 10.2))
-    gs = fig.add_gridspec(2, 2, height_ratios=[1.2, 0.95], hspace=0.30, wspace=0.26)
-    vmax = max(
-        float(np.nanquantile(packs["MtoF"]["abs_curl"], 0.98)),
-        float(np.nanquantile(packs["FtoM"]["abs_curl"], 0.98)),
+
+    dwell_dir = RES / "residual_field_ball_sim"
+    dwell = {
+        "MtoF": np.load(dwell_dir / "Fig_residual_ball_dwell_MtoF_dwell.npy"),
+        "FtoM": np.load(dwell_dir / "Fig_residual_ball_dwell_FtoM_dwell.npy"),
+    }
+    valid = {
+        "MtoF": np.load(dwell_dir / "Fig_residual_ball_dwell_MtoF_valid.npy"),
+        "FtoM": np.load(dwell_dir / "Fig_residual_ball_dwell_FtoM_valid.npy"),
+    }
+    # dwell grids are 60×60 on VA 1–7 (step 0.1); topology g may differ slightly
+    g_dwell = np.arange(1.0 + 0.05, 7.0, 0.1)
+    if len(g_dwell) != dwell["MtoF"].shape[0]:
+        g_dwell = np.linspace(1.05, 6.95, dwell["MtoF"].shape[0])
+
+    fig = plt.figure(figsize=(11.6, 8.6))
+    gs = fig.add_gridspec(2, 2, hspace=0.32, wspace=0.28)
+
+    mag_vmax = max(
+        float(np.nanquantile(_residual_mag(packs["MtoF"]), 0.98)),
+        float(np.nanquantile(_residual_mag(packs["FtoM"]), 0.98)),
         1e-4,
     )
-    for col, key, panel in [(0, "MtoF", "A"), (1, "FtoM", "B")]:
-        p = packs[key]
-        sp = DIR_SPECS[key]
+    dwell_z = {
+        k: np.where(valid[k], np.log10(dwell[k].astype(float) + 1.0), np.nan)
+        for k in ("MtoF", "FtoM")
+    }
+    dwell_vmax = max(
+        float(np.nanmax(dwell_z["MtoF"])),
+        float(np.nanmax(dwell_z["FtoM"])),
+        1e-4,
+    )
+
+    # Row 0: residual magnitude + direction
+    for col, key, lab in [(0, "MtoF", "A"), (1, "FtoM", "B")]:
         ax = fig.add_subplot(gs[0, col])
-        panel_label(ax, panel)
-        im = _draw_field_panel(
-            ax, g, p["dx"], p["dy"], p["abs_curl"],
-            title=(
-                f"{sp['label']}: {sp['resid_formula']}\n"
-                f"|curl| q90={p['curl_stats']['q90']:.2f} (method detail)"
-            ),
-            xlabel=f"Valence ({sp['src_axis']})",
-            ylabel=f"Arousal ({sp['src_axis']})",
-            peak_xy=p["peaks_xy"],
-            vmax=vmax,
+        panel_label(ax, lab)
+        _draw_topology_single(
+            ax, g, packs, key, fig=fig, vmax=mag_vmax,
         )
-        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02).set_label("|curl|")
-    for col, key, panel in [(0, "MtoF", "C"), (1, "FtoM", "D")]:
-        p = packs[key]
+        sp = DIR_SPECS[key]
+        ax.set_title(
+            f"{lab}  ‖Δ‖ + direction ({sp['label']})\n{sp['resid_formula']}",
+            fontsize=8.6,
+        )
+
+    # Row 1: dwell + residual-field arrows (curl evidence without |curl| heatmap)
+    xg, yg = np.meshgrid(g_dwell, g_dwell, indexing="xy")
+    gg = np.asarray(g, float)
+    xgt, ygt = np.meshgrid(gg, gg, indexing="xy")
+    step_q = max(1, len(gg) // 12)
+    sl = (slice(None, None, step_q), slice(None, None, step_q))
+    for col, key, lab in [(0, "MtoF", "C"), (1, "FtoM", "D")]:
         ax = fig.add_subplot(gs[1, col])
-        panel_label(ax, panel)
-        _draw_cand_strip(
-            ax, p["cands"],
-            f"{p['spec']['label']} candidates (hypothesis-generating; do not generalise)",
-            n=8,
+        panel_label(ax, lab)
+        sp = DIR_SPECS[key]
+        p = packs[key]
+        im = ax.pcolormesh(
+            xg, yg, dwell_z[key], shading="auto", cmap="inferno",
+            vmin=0.0, vmax=dwell_vmax, zorder=1,
         )
+        dx = np.asarray(p["dx"], float)
+        dy = np.asarray(p["dy"], float)
+        dx_s, dy_s, valid_f = prepare_stream(dx, dy)
+        m = valid_f[sl]
+        ax.quiver(
+            xgt[sl][m], ygt[sl][m], dx[sl][m], dy[sl][m],
+            color="cyan", alpha=0.9, angles="xy", scale_units="xy", scale=2.2,
+            width=0.0035, zorder=3,
+        )
+        try:
+            ax.streamplot(
+                gg, gg, dx_s, dy_s,
+                color="#80cbc4", density=1.05, linewidth=0.85,
+                arrowsize=0.65, zorder=2, broken_streamlines=True,
+            )
+        except Exception:
+            pass
+        q90 = float(p["curl_stats"]["q90"])
+        ax.set_xlim(1, 7)
+        ax.set_ylim(1, 7)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_xlabel(f"Valence ({sp['src_axis']})")
+        ax.set_ylabel(f"Arousal ({sp['src_axis']})")
+        ax.set_title(
+            f"{lab}  Walker dwell ({sp['label']})\n"
+            f"log₁₀(dwell+1); arrows = residual field (|curl| q90={q90:.2f})",
+            fontsize=8.6,
+        )
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02).set_label("log₁₀(dwell+1)")
+
     fig.suptitle(
-        "Supp. Fig. | Residual VA field topology — curl peaks & exemplar images\n"
-        "Supports main-text Fig.5-C; curl interpretation and image exemplars are exploratory",
-        fontsize=10.5, y=0.98,
+        "Supp. Fig. | Post-Φ residual magnitude and walker dwell\n"
+        "Residual-field arrows on dwell (curl ≠ 0 → peaks are not potential attractors; "
+        "Φ on n=900 group means)",
+        fontsize=10.5, y=0.995,
     )
     return save_dual(fig, "Paper_SuppFig_residual_field_topology")
 
@@ -3266,11 +3711,13 @@ def paper_supp_minimal_anchor_coverage() -> tuple[Path, Path]:
         mask = sd_df["image_id"].astype(str).isin(labs)
         minimal = sd_df.loc[mask, "sd_pair"].to_numpy(float)
         rest = sd_df.loc[~mask, "sd_pair"].to_numpy(float)
-        parts = ax.violinplot([rest, minimal], positions=[0, 1], showmeans=True, showmedians=True)
-        for b in parts["bodies"]:
-            b.set_alpha(0.65)
-        ax.set_xticks([0, 1], ["Other images", "Minimal anchors"])
-        ax.set_ylabel("Group SD proxy (sd_pair)")
+        violin_strip(
+            ax,
+            {"Other images": rest, "Minimal anchors": minimal},
+            colors=["#90a4ae", "#1565c0"],
+            ylabel="Group SD proxy (sd_pair)",
+            seed=0,
+        )
         agr = m2f.get("agreement", {})
         ax.set_title(
             f"Agreement proxy (exploratory)\n"
@@ -3349,18 +3796,92 @@ def _draw_z5cat_heatmap_panel(
 
 # ── Supplement: legacy / technical ────────────────────────────────────
 def paper_supp_cross_within() -> tuple[Path, Path]:
-    fig = plt.figure(figsize=(10.5, 5.5))
-    gs = GridSpec(1, 2, figure=fig, wspace=0.08)
-    ax0 = fig.add_subplot(gs[0, 0])
-    panel_label(ax0, "A")
-    embed(ax0, "Figure_all_loto_cross_within_bias_cluster_overview_fusion.png",
-          "Cross−within bias δ (M→F / F→M); cluster p<0.001")
-    ax1 = fig.add_subplot(gs[0, 1])
-    panel_label(ax1, "B")
-    embed(ax1, "Figure_relational_twist_va_bridge.png",
-          "Bias field aligned with Φ shift; adjust residual")
-    fig.suptitle("Supp. Fig. | Cross−within bias field (legacy main-text Fig.4)", y=0.98, fontsize=11)
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    """Supp. Fig. 1: cross−within δ t-maps only (M→F / F→M); no adjust panels."""
+    from paper2_viz.figures.analyze_cross_within_bias_clusters import (
+        VA_MAX,
+        VA_MIN,
+        overlay_cluster_regions,
+    )
+
+    npz_path = (
+        RES
+        / "cross_within_bias_cluster_analysis"
+        / "maps_all_loto_cross_within_bias_cluster_overview_fusion.npz"
+    )
+    if not npz_path.exists():
+        raise FileNotFoundError(
+            f"Missing {npz_path}. Run: "
+            "python3 code/paper2_viz/figures/analyze_cross_within_bias_clusters.py "
+            "--model fusion --subsets all_loto --save-maps-npz"
+        )
+    with np.load(npz_path) as z:
+        g = np.asarray(z["grid"], float)
+        step = float(z["grid_step"])
+        panels = [
+            (
+                "a",
+                "M→F (female target)",
+                "female score (ref)",
+                np.asarray(z["cross_bias_female_target__t_map"], float),
+                np.asarray(z["cross_bias_female_target__labels"], int),
+                np.asarray(z["cross_bias_female_target__labels_sig"], int),
+                float(z["cross_bias_female_target__p_cluster"]),
+                int(z["cross_bias_female_target__n_sig_clusters"]),
+            ),
+            (
+                "b",
+                "F→M (male target)",
+                "male score (ref)",
+                np.asarray(z["cross_bias_male_target__t_map"], float),
+                np.asarray(z["cross_bias_male_target__labels"], int),
+                np.asarray(z["cross_bias_male_target__labels_sig"], int),
+                float(z["cross_bias_male_target__p_cluster"]),
+                int(z["cross_bias_male_target__n_sig_clusters"]),
+            ),
+        ]
+
+    extent = [g[0] - step / 2, g[-1] + step / 2, g[0] - step / 2, g[-1] + step / 2]
+    vmax = 0.0
+    for _lab, _title, _ref, t_map, _labels, _lsig, _p, _ns in panels:
+        finite = t_map[np.isfinite(t_map)]
+        if finite.size:
+            vmax = max(vmax, float(np.nanpercentile(np.abs(finite), 99)))
+    vmax = max(vmax, 1e-6)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.6), constrained_layout=True)
+    last_im = None
+    for ax, (lab, title, ref_label, t_map, labels, labels_sig, p_cl, n_sig) in zip(
+        axes, panels
+    ):
+        panel_label(ax, lab.upper())
+        last_im = ax.imshow(
+            t_map,
+            origin="lower",
+            extent=extent,
+            cmap="RdBu_r",
+            vmin=-vmax,
+            vmax=vmax,
+            aspect="equal",
+        )
+        overlay_cluster_regions(ax, labels, labels_sig, extent)
+        ax.set_title(
+            f"{title}\n"
+            f"global cluster p={p_cl:.3f}; sig. regions={n_sig}",
+            fontsize=9,
+        )
+        ax.set_xlabel(f"Valence ({ref_label})")
+        ax.set_ylabel(f"Arousal ({ref_label})")
+        ax.set_xlim(VA_MIN, VA_MAX)
+        ax.set_ylim(VA_MIN, VA_MAX)
+        ax.set_xticks(np.arange(VA_MIN, VA_MAX + 0.01, 1.0))
+        ax.set_yticks(np.arange(VA_MIN, VA_MAX + 0.01, 1.0))
+
+    fig.colorbar(last_im, ax=list(axes), fraction=0.035, pad=0.02, label="paired t (δ)")
+    fig.suptitle(
+        "Supp. Fig. | Cross−versus−within bias field δ\n"
+        "LOTO; cluster permutation (sign-flip); black outline = significant regions",
+        fontsize=10.5,
+    )
     return save_dual(fig, "Paper_SuppFig_cross_within_bias")
 
 
@@ -3389,7 +3910,7 @@ def write_readme(paths: list[tuple[str, Path, Path]]) -> None:
         "",
         "| ファイル | 内容 |",
         "|----------|------|",
-        "| Paper_SuppFig_cross_within_bias | cross−within bias field |",
+        "| Paper_SuppFig_cross_within_bias | cross−within δ t-maps (M→F / F→M only) |",
         "| Paper_SuppFig_minimal_anchor_coverage | minimal coverage procedure |",
         "| Paper_SuppFig_matched_k_minimal_comparison | matched-k cell Jaccard |",
         "| Paper_SuppFig_person_bottleneck | Person generalisation bottleneck |",
@@ -3446,8 +3967,10 @@ def main() -> None:
         ("Supp cross-within", paper_supp_cross_within),
         ("Supp minimal anchor", paper_supp_minimal_anchor_coverage),
         ("Supp matched-k minimal", paper_supp_matched_k_minimal_comparison),
+        ("Supp anchor point density", paper_supp_anchor_point_density_step0p1),
         ("Supp person bottleneck", paper_supp_person_bottleneck),
         ("Supp residual topology", paper_supp_residual_field_topology),
+        ("Supp phi asymmetry", paper_supp_phi_prediction_asymmetry),
         ("Supp Z3 selection", paper_supp_z3_anchor_selection),
     ]
     saved: list[tuple[str, Path, Path]] = []

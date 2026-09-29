@@ -601,10 +601,14 @@ def plot_overview(
     fig.tight_layout(rect=(0.04, 0, 0.94, 0.94))
     if last_im is not None:
         fig.colorbar(last_im, ax=axes[0, :].ravel().tolist(), shrink=0.85, label="paired t")
-    out = out_dir / f"Figure_{subset_tag}_cross_within_bias_cluster_overview_{model}.png"
-    fig.savefig(out, dpi=150, bbox_inches="tight")
+    stem = f"Figure_{subset_tag}_cross_within_bias_cluster_overview_{model}"
+    out_png = out_dir / f"{stem}.png"
+    out_svg = out_dir / f"{stem}.svg"
+    fig.savefig(out_png, dpi=150, bbox_inches="tight")
+    fig.savefig(out_svg, format="svg", bbox_inches="tight")
     plt.close(fig)
-    print(f"Saved {out}")
+    print(f"Saved {out_png}")
+    print(f"Saved {out_svg}")
 
 
 SUBSET_SPECS: tuple[tuple[str, str | None], ...] = (
@@ -631,6 +635,17 @@ def main() -> None:
         type=Path,
         default=RESULTS_GENDER / "cross_within_bias_cluster_analysis",
     )
+    ap.add_argument(
+        "--subsets",
+        nargs="+",
+        default=None,
+        help="Subset tags to run (default: all). Example: all_loto",
+    )
+    ap.add_argument(
+        "--save-maps-npz",
+        action="store_true",
+        help="Save t/vector maps for overview panels as npz (for later replot).",
+    )
     args = ap.parse_args()
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
@@ -639,10 +654,18 @@ def main() -> None:
     summary_rows: list[dict] = []
     cluster_rows: list[dict] = []
 
+    wanted = set(args.subsets) if args.subsets else None
     for subset_tag, category in SUBSET_SPECS:
+        if wanted is not None and subset_tag not in wanted:
+            continue
         data = load_pool(model=args.model, category=category)
         print(f"Subset {subset_tag}: n={data['n']}")
         overview_panels: list[tuple] = []
+        maps_payload: dict[str, np.ndarray] = {
+            "grid": g,
+            "grid_step": np.asarray(args.grid_step, float),
+            "min_n": np.asarray(args.min_n, int),
+        }
 
         for spec in MAP_SPECS:
             v_ref, a_ref, err_a, err_b, vec = comparison_arrays(data, spec)
@@ -675,6 +698,19 @@ def main() -> None:
                 alpha=args.alpha,
             )
             overview_panels.append((spec, res, dx, dy, cnt, ref_label))
+            if args.save_maps_npz:
+                prefix = f"{spec.key}"
+                maps_payload[f"{prefix}__t_map"] = np.asarray(res["t_map"], float)
+                maps_payload[f"{prefix}__mean_map"] = np.asarray(res["mean_map"], float)
+                maps_payload[f"{prefix}__labels"] = np.asarray(res["labels"], int)
+                maps_payload[f"{prefix}__labels_sig"] = np.asarray(res["labels_sig"], int)
+                maps_payload[f"{prefix}__dx"] = np.asarray(dx, float)
+                maps_payload[f"{prefix}__dy"] = np.asarray(dy, float)
+                maps_payload[f"{prefix}__cnt"] = np.asarray(cnt, float)
+                maps_payload[f"{prefix}__p_cluster"] = np.asarray(res["p_cluster"], float)
+                maps_payload[f"{prefix}__n_sig_clusters"] = np.asarray(
+                    res.get("n_sig_clusters", 0), int
+                )
 
             cluster_table_path = args.results_dir / f"Table_{stem}_clusters.csv"
             cluster_df = pd.DataFrame(res["clusters"])
@@ -726,12 +762,28 @@ def main() -> None:
                 alpha=args.alpha,
                 t_threshold=args.t_threshold,
             )
+            if args.save_maps_npz:
+                npz_path = (
+                    args.results_dir
+                    / f"maps_{subset_tag}_cross_within_bias_cluster_overview_{args.model}.npz"
+                )
+                np.savez_compressed(npz_path, **maps_payload)
+                print(f"Saved {npz_path}")
 
-    summary_path = args.results_dir / f"summary_cross_within_bias_clusters_{args.model}.csv"
+    tag = "all" if wanted is None else "_".join(sorted(wanted))
+    summary_path = (
+        args.results_dir / f"summary_cross_within_bias_clusters_{args.model}.csv"
+        if wanted is None
+        else args.results_dir / f"summary_cross_within_bias_clusters_{args.model}_{tag}.csv"
+    )
     pd.DataFrame(summary_rows).to_csv(summary_path, index=False)
     print(f"Saved {summary_path}")
     if cluster_rows:
-        all_clusters_path = args.results_dir / f"all_clusters_cross_within_bias_{args.model}.csv"
+        all_clusters_path = (
+            args.results_dir / f"all_clusters_cross_within_bias_{args.model}.csv"
+            if wanted is None
+            else args.results_dir / f"all_clusters_cross_within_bias_{args.model}_{tag}.csv"
+        )
         pd.DataFrame(cluster_rows).to_csv(all_clusters_path, index=False)
         print(f"Saved {all_clusters_path}")
 

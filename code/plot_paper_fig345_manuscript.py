@@ -394,22 +394,35 @@ def draw_fig5_flow_rownorm(ax, m: pd.DataFrame, meta: dict) -> None:
     cats = list(CO)
     row_sums = mat_c.sum(axis=1, keepdims=True).clip(min=1)
     mat_r = mat_c / row_sums
-    im = ax.imshow(mat_r, cmap="Blues", vmin=0, vmax=max(0.45, float(mat_r.max())), aspect="equal")
+    # Match Fig.6-C category-flow palette (inferno); values remain row fractions.
+    im = ax.imshow(mat_r, cmap="inferno", vmin=0, vmax=max(0.45, float(mat_r.max())), aspect="equal")
     ax.set_xticks(range(4), cats, rotation=30, ha="right", fontsize=7.5)
     ax.set_yticks(range(4), cats, fontsize=7.5)
     ax.set_xlabel("Target category (j)")
     ax.set_ylabel("Source category (i)")
+    vmax = float(mat_r.max()) if mat_r.size else 1.0
     for i in range(4):
         for j in range(4):
             v = int(mat_c[i, j])
             if v <= 0:
                 continue
+            # inferno: dark at low, bright at high
+            color = "white" if mat_r[i, j] < vmax * 0.55 else "0.05"
             ax.text(
                 j, i, f"{mat_r[i, j]:.0%}\n({v})",
                 ha="center", va="center", fontsize=7.2,
-                color="white" if mat_r[i, j] > 0.28 else "0.1",
-                fontweight="bold" if i == j else "normal",
+                color=color,
+                fontweight="bold" if i != j else "normal",
             )
+    ax.set_xticks(np.arange(-0.5, 4, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, 4, 1), minor=True)
+    ax.grid(which="minor", color="white", lw=1.2)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    for i in range(4):
+        ax.add_patch(plt.Rectangle(
+            (i - 0.5, i - 0.5), 1, 1, fill=False,
+            edgecolor="#90a4ae", lw=1.4, zorder=3,
+        ))
     diag = float(np.trace(mat_c)) / max(n, 1)
     perm = meta.get("category_permutation", {})
     null_same = perm.get("permutation_null_same_category_mean", 0.27)

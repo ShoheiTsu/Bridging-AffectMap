@@ -183,22 +183,33 @@ def analysis_a3_clip_distance(eq: pd.DataFrame, df: pd.DataFrame, X: np.ndarray,
 
 
 def analysis_b_residual_translation(eq: pd.DataFrame, rng: np.random.Generator) -> dict:
-    """Does case-based translation help where the global bridge Φ leaves large residual/twist?"""
-    phi = pd.read_csv(PHI_TWIST_CSV)[["image_id", "resid_score_l2", "raw_gap_l2", "umap_4d_twist"]]
+    """Does case-based translation help where the global bridge Φ leaves large residual/twist?
+
+    Primary Φ residual is the gender-bridge in-sample residual on all OASIS images
+    (`residual_per_image_gender.csv`, n=900), so beat rate / terciles align with
+    theme-CV pairs (n=900) rather than the LOTO MIN_TEST=2 subset (n=810).
+    Model-twist correlations remain on the available relational-twist merge.
+    """
+    del rng  # reserved for future resampling diagnostics
+    gender_resid = pd.read_csv(
+        PROJECT_ROOT / "results" / "population_bridge_analysis" / "residual_per_image_gender.csv"
+    )[["image_id", "residual_l2"]].rename(columns={"residual_l2": "resid_score_l2"})
     rel = pd.read_csv(REL_TWIST_CSV)[["image_id", "model_twist_pm_pf", "cross_bias_err_mf_minus_ff"]]
-    m = eq.merge(phi, left_on="i_image_id", right_on="image_id", how="inner").merge(
-        rel, left_on="i_image_id", right_on="image_id", how="inner"
-    )
-    m = m.dropna(subset=["resid_score_l2", "distance_l2", "model_twist_pm_pf"]).reset_index(drop=True)
+
+    m = eq.merge(gender_resid, left_on="i_image_id", right_on="image_id", how="inner")
+    m = m.dropna(subset=["resid_score_l2", "distance_l2"]).reset_index(drop=True)
 
     # case-based translation residual = distance_l2 ; global-bridge residual = resid_score_l2
     m["translation_improvement"] = m["resid_score_l2"] - m["distance_l2"]
 
-    def sp(a, b):
-        r, p = spearmanr(m[a], m[b])
+    m_twist = m.merge(rel, left_on="i_image_id", right_on="image_id", how="left", suffixes=("", "_rel"))
+    m_twist = m_twist.dropna(subset=["model_twist_pm_pf"]).reset_index(drop=True)
+
+    def sp(frame: pd.DataFrame, a: str, b: str) -> dict:
+        r, p = spearmanr(frame[a], frame[b])
         return {"spearman_rho": float(r), "p": float(p)}
 
-    # tercile contrast: high vs low Φ residual (excess twist proxy)
+    # tercile contrast: high vs low Φ residual
     q1, q2 = m["resid_score_l2"].quantile([1 / 3, 2 / 3])
     low = m[m["resid_score_l2"] <= q1]["translation_improvement"]
     high = m[m["resid_score_l2"] >= q2]["translation_improvement"]
@@ -206,9 +217,15 @@ def analysis_b_residual_translation(eq: pd.DataFrame, rng: np.random.Generator) 
 
     return {
         "n_merged": int(len(m)),
-        "corr_phi_residual_vs_translation_improvement": sp("resid_score_l2", "translation_improvement"),
-        "corr_model_twist_vs_translation_improvement": sp("model_twist_pm_pf", "translation_improvement"),
-        "corr_phi_residual_vs_equiv_distance": sp("resid_score_l2", "distance_l2"),
+        "n_merged_with_model_twist": int(len(m_twist)),
+        "phi_residual_source": "population_bridge_analysis/residual_per_image_gender.csv",
+        "phi_residual_estimand": "in-sample gender-bridge Φ on OASIS group means (n=900)",
+        "corr_phi_residual_vs_translation_improvement": sp(m, "resid_score_l2", "translation_improvement"),
+        "corr_model_twist_vs_translation_improvement": (
+            sp(m_twist, "model_twist_pm_pf", "translation_improvement")
+            if len(m_twist) else {"spearman_rho": float("nan"), "p": float("nan")}
+        ),
+        "corr_phi_residual_vs_equiv_distance": sp(m, "resid_score_l2", "distance_l2"),
         "tercile_contrast_high_vs_low_phi_residual": {
             "median_improvement_high": float(high.median()),
             "median_improvement_low": float(low.median()),
