@@ -3920,7 +3920,7 @@ def write_readme(paths: list[tuple[str, Path, Path]]) -> None:
         "Additional Supplementary figures (five-point by dimension, Φ asymmetry, λ vs Φ,",
         "predictive translation, Φ residual vs equivalence distance) are produced by the",
         "dedicated scripts in this repository (`plot_paper_fig2_perspective_geometry.py`,",
-        "`plot_testfig_phi_prediction_asymmetry_va_images.py`, `plot_suppfig_lambda_transform_vs_phi.py`,",
+        "`plot_suppfig_lambda_transform_vs_phi.py`,",
         "`plot_predictive_translation_prototype.py`, `plot_paper_fig345_manuscript.py`).",
         "",
         "## データソース",

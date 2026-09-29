@@ -10,7 +10,7 @@
       （CLIP 特徴距離：等価ペア vs ランダムペア）
 
 解析B（残差領域への効き）:
-  Φ 残差（linear_phi_twist_bridge の resid_score_l2）や model twist が大きい画像ほど、
+  Φ 残差（residual_per_image_gender の residual_l2；n=900）や model twist が大きい画像ほど、
   等価翻訳（case-based translation）が Φ より誤差を減らすか。
 
 出力:
@@ -48,7 +48,6 @@ EQ_CSV_CV = CVAE_CROSS_GENDER_DIR / "paper2_emotion_equivalent_pairs_themecv.csv
 EQ_META_CV = CVAE_CROSS_GENDER_DIR / "paper2_emotion_equivalent_pairs_themecv_meta.json"
 # Back-compat alias
 EQ_CSV = EQ_CSV_FIXED
-PHI_TWIST_CSV = PROJECT_ROOT / "results" / "linear_phi_twist_bridge" / "linear_phi_twist_per_image.csv"
 REL_TWIST_CSV = PROJECT_ROOT / "results" / "relational_cross_within_twist" / "relational_twist_per_image.csv"
 
 OUT_DIR = PROJECT_ROOT / "results" / "equivalence_nontriviality"

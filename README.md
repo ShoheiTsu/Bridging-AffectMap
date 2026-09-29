@@ -25,7 +25,7 @@ Scripts cover:
 - exemplar / predictive translation
 - main-text and Supplementary figure generation for the submitted set
 
-Withdrawn exploratory Supplementary figures (near/mid/far layers, UMAP twist field, category-restricted 4×4 matrices, reliability-shield figure panels, case-translation validation/split figure panels, and related one-offs) are **not** included.
+Withdrawn exploratory Supplementary figures (near/mid/far layers, UMAP twist field, category-restricted 4×4 matrices, reliability-shield figure panels, case-translation validation/split figure panels, and related one-offs) are **not** included. Superseded testfig plotters and private-data prep utilities are also omitted.
 
 Paths inside the scripts assume a project root that also contains OASIS score tables and CLIP feature arrays. Adjust `code/config.py` if needed.
 

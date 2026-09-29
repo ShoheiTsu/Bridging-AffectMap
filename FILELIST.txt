@@ -12,16 +12,15 @@ code/analysis_paper2_ot_five_point.py
 code/analysis_paper2_swap_and_cka.py
 code/analysis_paper2_swap_linear_map_recovery.py
 code/analysis_population_bridge_suite.py
+code/analysis_predictive_translation_feasibility.py
 code/analysis_predictive_translation_ridge.py
 code/analysis_subject_generalization_affine2d.py
-code/analysis_subject_scores_prepare_for_generalization.py
 code/config.py
 code/dataset.py
 code/generate_paper_figures.py
 code/paper2_viz/__init__.py
 code/paper2_viz/figures/__init__.py
 code/paper2_viz/figures/analyze_cross_within_bias_clusters.py
-code/paper2_viz/figures/analyze_linear_phi_twist_bridge.py
 code/paper2_viz/figures/analyze_relational_cross_within_twist.py
 code/paper2_viz/figures/make_cross_within_bias_va_maps.py
 code/paper2_viz/figures/make_lambda_gender_diff_va_maps.py
@@ -31,7 +30,6 @@ code/plot_paper_fig345_manuscript.py
 code/plot_predictive_translation_prototype.py
 code/plot_residual_field_topology.py
 code/plot_suppfig_lambda_transform_vs_phi.py
-code/plot_testfig_phi_prediction_asymmetry_va_images.py
 code/run_gender_models_loto_loco.py
 code/run_paper2_layer1_seed_sweep.py
 code/train_cvae_cross_gender.py
