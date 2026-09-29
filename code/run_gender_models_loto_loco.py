@@ -504,7 +504,7 @@ if __name__ == "__main__":
         "--background-words-csv",
         type=Path,
         default=None,
-        help="CLIP word extraction CSV for method-2 background判定 (requires image_id + word/token/label or is_background/background_score).",
+        help="CLIP word extraction CSV for method-2 background flags (requires image_id + word/token/label or is_background/background_score).",
     )
     parser.add_argument(
         "--output-root",
